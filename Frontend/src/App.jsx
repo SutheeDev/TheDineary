@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
   Home,
   Error,
@@ -8,50 +8,46 @@ import {
   UpdateRestaurant,
   UpdateUser,
   DashboardLayout,
+  Login,
+  Register,
 } from "./pages/index";
 import apiClient from "./utils/apiClient";
 
-const userId = import.meta.env.VITE_USER_ID;
 const globalContext = createContext();
 
 const App = () => {
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [isAlert, setIsAlert] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
-  const getUser = async () => {
+  const logout = async () => {
     try {
-      const response = await apiClient.get(`/user/${userId}`);
-      setUser(response.data);
-    } catch (error) {
-      console.log(error);
+      await apiClient.post("/auth/logout");
+    } catch {
+      // ignore
     }
-  };
-
-  const getRestaurants = async () => {
-    try {
-      const response = await apiClient.get(`/restaurants/${userId}`);
-      setRestaurants(response.data);
-    } catch (error) {
-      console.log(error);
-    }
+    setUser(null);
+    setRestaurants([]);
   };
 
   useEffect(() => {
-    const loadingPage = async () => {
+    const init = async () => {
       try {
-        setIsLoading(true);
-        await getUser();
-        await getRestaurants();
+        const { data: userData } = await apiClient.get("/auth/me");
+        setUser(userData);
+        const { data: restaurantsData } = await apiClient.get("/restaurants");
+        setRestaurants(restaurantsData);
+      } catch {
+        // 401 is handled by the apiClient interceptor
+      } finally {
         setIsLoading(false);
-      } catch (error) {
-        console.log(error);
-        setIsLoading(false);
+        setIsAuthChecked(true);
       }
     };
 
-    loadingPage();
+    init();
   }, []);
 
   return (
@@ -65,11 +61,15 @@ const App = () => {
         setIsAlert,
         isLoading,
         setIsLoading,
+        logout,
+        isAuthChecked,
       }}
     >
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<DashboardLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<Home />} />
             <Route path="/create" element={<CreateRestaurant />} />
             <Route
@@ -78,12 +78,20 @@ const App = () => {
             />
             <Route path="/user/update" element={<UpdateUser />} />
           </Route>
-          <Route path="/restaurant/:id" element={<Restaurant />} />
+          <Route path="/restaurant/:id" element={<ProtectedRoute><Restaurant /></ProtectedRoute>} />
           <Route path="*" element={<Error />} />
         </Routes>
       </BrowserRouter>
     </globalContext.Provider>
   );
 };
+
+const ProtectedRoute = ({ children }) => {
+  const { user, isAuthChecked } = useGlobalContext();
+  if (!isAuthChecked) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
+
 export const useGlobalContext = () => useContext(globalContext);
 export default App;

@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 
 const UpdateUser = () => {
   const { user, setUser, isLoading, setIsLoading } = useGlobalContext();
-  const id = user._id;
 
   const navigate = useNavigate();
 
@@ -25,7 +24,7 @@ const UpdateUser = () => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.patch(`/user/${id}`, userState);
+      const response = await apiClient.patch("/user", userState);
       setUser(response.data);
       navigate("/");
     } catch (error) {

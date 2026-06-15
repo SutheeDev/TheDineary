@@ -25,8 +25,7 @@ const initialState = {
 const CreateRestaurant = () => {
   const [entry, setEntry] = useState(initialState);
 
-  const { user, setRestaurants, setIsLoading, isLoading } = useGlobalContext();
-  const userId = user._id;
+  const { setRestaurants, setIsLoading, isLoading } = useGlobalContext();
 
   const navigate = useNavigate();
 
@@ -100,7 +99,7 @@ const CreateRestaurant = () => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post(`/restaurants/${userId}`, entry);
+      const response = await apiClient.post("/restaurants", entry);
       const newRestaurant = response.data;
       setRestaurants((prev) =>
         [...prev, newRestaurant].sort(

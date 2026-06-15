@@ -7,10 +7,10 @@ import {
 
 const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.userId).select("-password");
 
     if (!user) {
-      throw new NotFoundError(`No user with id of ${req.params.id}`);
+      throw new NotFoundError(`No user found`);
     }
 
     res.status(200).json(user);
@@ -21,19 +21,20 @@ const getUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const userId = req.params.id;
     const { name, email } = req.body;
 
     if (!name || !email) {
       throw new BadRequestError("Please fill in all required fields");
     }
 
-    const updatedUser = await User.findOneAndUpdate({ _id: userId }, req.body, {
-      new: true,
-    });
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.userId },
+      req.body,
+      { new: true }
+    ).select("-password");
 
     if (!updatedUser) {
-      throw new NotFoundError(`No user with id of ${userId}`);
+      throw new NotFoundError(`No user found`);
     }
 
     res.status(200).json(updatedUser);

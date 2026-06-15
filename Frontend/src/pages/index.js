@@ -5,6 +5,8 @@ import Restaurant from "./Restaurant";
 import UpdateRestaurant from "./UpdateRestaurant";
 import UpdateUser from "./UpdateUser";
 import DashboardLayout from "./DashboardLayout";
+import Login from "./Login";
+import Register from "./Register";
 
 export {
   Home,
@@ -14,4 +16,6 @@ export {
   UpdateRestaurant,
   UpdateUser,
   DashboardLayout,
+  Login,
+  Register,
 };

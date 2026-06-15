@@ -1,11 +1,19 @@
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { useGlobalContext } from "../App";
 
 const ProfileDropdown = ({
   isProfileDropdownOpen,
   setIsProfileDropdownOpen,
 }) => {
   const navigate = useNavigate();
+  const { logout } = useGlobalContext();
+
+  const handleLogout = async () => {
+    setIsProfileDropdownOpen(false);
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <Wrapper>
@@ -18,6 +26,9 @@ const ProfileDropdown = ({
           }}
         >
           <p>Update Profile</p>
+        </div>
+        <div className="logout-menu" onClick={handleLogout}>
+          <p>Log Out</p>
         </div>
       </div>
     </Wrapper>
@@ -38,6 +49,7 @@ const Wrapper = styled.div`
   border-radius: 4px;
   padding: 8px;
   box-shadow: var(--dropdown-shadow);
+  z-index: 1000;
 
   .dropdown {
     display: flex;
@@ -46,7 +58,8 @@ const Wrapper = styled.div`
     gap: 10px;
   }
 
-  .update-profile-menu {
+  .update-profile-menu,
+  .logout-menu {
     text-align: right;
     width: 100%;
     border-radius: 4px;
@@ -56,7 +69,8 @@ const Wrapper = styled.div`
     transition: all 0.1s ease;
   }
 
-  .update-profile-menu:hover {
+  .update-profile-menu:hover,
+  .logout-menu:hover {
     background-color: var(--gray-200);
   }
 `;

@@ -13,9 +13,8 @@ import { BiDollar } from "react-icons/bi";
 import { BsUpload } from "react-icons/bs";
 
 const UpdateRestaurant = () => {
-  const { restaurants, user, setRestaurants, setIsLoading, isLoading } =
+  const { restaurants, setRestaurants, setIsLoading, isLoading } =
     useGlobalContext();
-  const userId = user._id;
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -104,10 +103,7 @@ const UpdateRestaurant = () => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.patch(
-        `/restaurants/${userId}/${id}`,
-        entry
-      );
+      const response = await apiClient.patch(`/restaurants/${id}`, entry);
       const updatedRestaurant = response.data;
       setRestaurants(
         restaurants

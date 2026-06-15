@@ -6,12 +6,15 @@ import {
   updateRestaurant,
   deleteRestaurant,
 } from "../controllers/restaurantsController.mjs";
+import authMiddleware from "../middleware/authMiddleware.mjs";
 
 const router = express.Router();
 
-router.route("/:userId").post(createRestaurant).get(getRestaurants);
+router.use(authMiddleware);
+
+router.route("/").post(createRestaurant).get(getRestaurants);
 router
-  .route("/:userId/:restaurantId")
+  .route("/:id")
   .get(getSingleRestaurant)
   .patch(updateRestaurant)
   .delete(deleteRestaurant);
