@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useGlobalContext } from "../App";
 import { FormRow, Loading } from "../components";
 import styled from "styled-components";
@@ -17,6 +18,44 @@ const UpdateUser = () => {
   };
 
   const [userState, setUserState] = useState(initialUser);
+  const [setupUrl, setSetupUrl] = useState("");
+  const [setupCode, setSetupCode] = useState("");
+  const [twoFAError, setTwoFAError] = useState("");
+
+  const handleStartSetup = async () => {
+    setTwoFAError("");
+    try {
+      const { data } = await apiClient.post("/auth/totp/setup");
+      setSetupUrl(data.otpauthUrl);
+    } catch (err) {
+      setTwoFAError(err.response?.data?.msg || "Could not start setup");
+    }
+  };
+
+  const handleConfirmSetup = async (e) => {
+    e.preventDefault();
+    setTwoFAError("");
+    try {
+      const { data } = await apiClient.post("/auth/totp/verify-setup", {
+        token: setupCode,
+      });
+      setUser(data);
+      setSetupUrl("");
+      setSetupCode("");
+    } catch (err) {
+      setTwoFAError(err.response?.data?.msg || "Could not enable 2FA");
+    }
+  };
+
+  const handleDisable = async () => {
+    setTwoFAError("");
+    try {
+      const { data } = await apiClient.post("/auth/totp/disable");
+      setUser(data);
+    } catch (err) {
+      setTwoFAError(err.response?.data?.msg || "Could not disable 2FA");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,6 +80,7 @@ const UpdateUser = () => {
         {isLoading ? (
           <Loading />
         ) : (
+          <>
           <form onSubmit={handleSubmit}>
             <div className="form-inputs">
               <FormRow
@@ -88,6 +128,64 @@ const UpdateUser = () => {
               </div>
             </div>
           </form>
+
+          <div className="twofa-section">
+            <h2 className="twofa-heading">Two-Factor Authentication</h2>
+            {twoFAError && <p className="twofa-error">{twoFAError}</p>}
+
+            {user.totpEnabled ? (
+              <>
+                <div className="twofa-row">
+                  <p className="twofa-status">2FA is currently enabled.</p>
+                  <button
+                    type="button"
+                    className="btn cancel-btn"
+                    onClick={handleDisable}
+                  >
+                    Disable 2FA
+                  </button>
+                </div>
+              </>
+            ) : setupUrl ? (
+              <>
+                <p className="twofa-status">
+                  Scan this QR code with your authenticator app, then enter the
+                  6-digit code to finish.
+                </p>
+                <div className="qr-wrapper">
+                  <QRCodeSVG value={setupUrl} size={160} />
+                </div>
+                <form onSubmit={handleConfirmSetup}>
+                  <FormRow
+                    type="text"
+                    name="setupCode"
+                    value={setupCode}
+                    handleChange={(e) => setSetupCode(e.target.value)}
+                    placeholder="6-digit code"
+                  />
+                  <div className="btn-container">
+                    <button className="btn orange-btn" type="submit">
+                      Enable 2FA
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="twofa-row">
+                  <p className="twofa-status">2FA is currently disabled.</p>
+                  <button
+                    type="button"
+                    className="btn orange-btn"
+                    onClick={handleStartSetup}
+                  >
+                    Set Up 2FA
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          </>
         )}
       </div>
     </CardsContainer>
@@ -107,6 +205,46 @@ const CardsContainer = styled.div`
 
   .cancel-btn {
     margin-left: 20px;
+  }
+
+  .twofa-section {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
+  }
+
+  .twofa-heading {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .twofa-status {
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .twofa-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .twofa-row .twofa-status {
+    margin-bottom: 0;
+  }
+
+  .twofa-error {
+    color: var(--orange);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .qr-wrapper {
+    display: inline-block;
+    padding: 16px;
+    background-color: #fff;
+    border-radius: var(--card-radius);
+    margin-bottom: 16px;
   }
 
   @media (max-width: 1024px) {

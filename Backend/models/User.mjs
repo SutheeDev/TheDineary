@@ -22,6 +22,13 @@ const userSchema = new mongoose.Schema({
     required: true,
     minLength: 6,
   },
+  totpSecret: {
+    type: String,
+  },
+  totpEnabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 export default mongoose.model("User", userSchema);

@@ -54,6 +54,7 @@ A personal restaurant diary app where users can log, manage, and organize their 
 
 - Accessible from the navbar user icon.
 - Update name, last name, and email.
+- Enable or disable two-factor authentication (TOTP): scan a QR code with an authenticator app and confirm a 6-digit code to turn it on.
 
 ### Error 404 Page
 
@@ -62,9 +63,9 @@ A personal restaurant diary app where users can log, manage, and organize their 
 
 ## Tech Stack
 
-**Frontend** -- React 18, Vite, React Router v7, styled-components, react-datepicker, react-icons, Axios
+**Frontend** -- React 18, Vite, React Router v7, styled-components, react-datepicker, react-icons, Axios, qrcode.react (2FA QR code)
 
-**Backend** -- Node.js, Express, MongoDB (Mongoose), ES Modules (`.mjs` throughout)
+**Backend** -- Node.js, Express, MongoDB (Mongoose), ES Modules (`.mjs` throughout), JWT + bcryptjs (auth), otplib (TOTP 2FA)
 
 **External Services** -- MongoDB Atlas (database), Cloudinary (image storage), Render (deployment)
 
@@ -93,12 +94,16 @@ cd ../Frontend && npm install
 ```
 PORT=5000
 MONGO_URI=your-mongodb-connection-string
+NODE_ENV=development
+JWT_SECRET=your-jwt-signing-secret
+JWT_EXPIRES_IN=7d
 ```
 
 **Frontend** -- create `Frontend/.env`:
 
 ```
-VITE_USER_ID=your-hardcoded-user-id
+VITE_CLOUD_NAME=your-cloudinary-cloud-name
+VITE_UPLOAD_PRESET_NAME=your-cloudinary-unsigned-preset
 ```
 
 ## Running the App
@@ -135,18 +140,33 @@ GET /api/seed/restaurants
 
 ## API Routes
 
+All protected routes identify the user from the httpOnly session cookie, so the user id never appears in the URL.
+
+### Auth
+
+- `POST /api/auth/register` -- create an account, sets the session cookie
+- `POST /api/auth/login` -- log in; if 2FA is enabled, returns `{ mfaRequired: true }` and sets a short-lived `mfa_pending` cookie instead of the session cookie
+- `POST /api/auth/totp/verify` -- complete login by verifying the 6-digit code (uses the `mfa_pending` cookie)
+- `POST /api/auth/totp/setup` -- (protected) start 2FA setup, returns an `otpauth://` URL for the QR code
+- `POST /api/auth/totp/verify-setup` -- (protected) verify the first code and enable 2FA
+- `POST /api/auth/totp/disable` -- (protected) disable 2FA
+- `POST /api/auth/logout` -- clear the session cookie
+- `GET /api/auth/me` -- (protected) get the logged-in user
+
 ### User
 
-- `GET /api/user/:id` -- get user details
-- `PATCH /api/user/:id` -- update user details
+- `GET /api/user` -- (protected) get user details
+- `PATCH /api/user` -- (protected) update user details
 
 ### Restaurants
 
-- `POST /api/restaurants/:userId` -- create a restaurant entry
-- `GET /api/restaurants/:userId` -- get all entries for a user
-- `GET /api/restaurants/:userId/:restaurantId` -- get a single entry
-- `PATCH /api/restaurants/:userId/:restaurantId` -- update an entry
-- `DELETE /api/restaurants/:userId/:restaurantId` -- delete an entry
+All restaurant routes are protected.
+
+- `POST /api/restaurants` -- create a restaurant entry
+- `GET /api/restaurants` -- get all entries for the logged-in user
+- `GET /api/restaurants/:id` -- get a single entry
+- `PATCH /api/restaurants/:id` -- update an entry
+- `DELETE /api/restaurants/:id` -- delete an entry
 
 ### Seed (dev only)
 
@@ -163,6 +183,8 @@ GET /api/seed/restaurants
 | `lastname` | String | max 20 chars, trimmed        |
 | `email`    | String | required, unique             |
 | `password` | String | required, min 6 chars        |
+| `totpSecret`  | String  | optional, set during 2FA setup (never returned to the client) |
+| `totpEnabled` | Boolean | defaults to `false`          |
 
 ### Restaurant
 
@@ -187,7 +209,6 @@ GET /api/seed/restaurants
 
 ## Future Plans
 
-- User authentication (register, login, JWT)
 - Calendar and list views for entries
 - Multiple image uploads with carousel display
 - Additional user profile options
