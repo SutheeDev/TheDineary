@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.mjs",
   "scripts": {
-    "start": "node --watch server.mjs"
+    "start": "node --watch server.mjs",
+    "seed": "node config/seed.mjs"
   },
   "keywords": [],
   "author": "",

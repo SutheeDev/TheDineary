@@ -133,10 +133,12 @@ npm run lint      # ESLint
 
 **Seed data** (dev only):
 
+```sh
+cd Backend
+npm run seed      # wipes users + restaurants, then loads sample data
 ```
-GET /api/seed/users
-GET /api/seed/restaurants
-```
+
+Warning: seeding deletes all existing users and restaurants before inserting the sample data. Do not run it against a database with real data.
 
 ## API Routes
 
@@ -170,8 +172,7 @@ All restaurant routes are protected.
 
 ### Seed (dev only)
 
-- `GET /api/seed/users` -- populate user data
-- `GET /api/seed/restaurants` -- populate restaurant data
+Seeding is a local script, not an HTTP route. Run `npm run seed` from `Backend/` to wipe and reload the sample users and restaurants.
 
 ## Database Schema
 

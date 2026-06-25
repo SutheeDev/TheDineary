@@ -4,10 +4,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import connectDB from "./config/db.mjs";
-import User from "./models/User.mjs";
-import Restaurant from "./models/Restaurant.mjs";
-import users from "./config/seedUser.mjs";
-import restaurants from "./config/seedRestaurant.mjs";
 import errorHandlerMiddleware from "./middleware/errorHandlerMiddleware.mjs";
 
 // test
@@ -39,26 +35,6 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/restaurants", restaurantRouter);
-
-// Seed routes
-app.get("/api/seed/users", async (req, res) => {
-  try {
-    await User.deleteMany({});
-    await User.create(users);
-    res.json(users);
-  } catch (error) {
-    console.log({ err: error.message });
-  }
-});
-app.get("/api/seed/restaurants", async (req, res) => {
-  try {
-    await Restaurant.deleteMany({});
-    await Restaurant.create(restaurants);
-    res.json(restaurants);
-  } catch (error) {
-    console.log({ err: error.message });
-  }
-});
 
 // Express-Validation Test Route
 app.post(
