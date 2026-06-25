@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FaUtensils, FaEye, FaEyeSlash } from "react-icons/fa";
+import { GoogleLogin } from "@react-oauth/google";
 import { FormRow } from "../components";
 import apiClient from "../utils/apiClient";
 import { useGlobalContext } from "../App";
@@ -34,6 +35,24 @@ const Register = () => {
     else if (form.password.length < 6)
       errors.password = "Password must be at least 6 characters";
     return errors;
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      const { data: userData } = await apiClient.post("/auth/google", {
+        credential: credentialResponse.credential,
+      });
+      setUser(userData);
+      const { data: restaurantsData } = await apiClient.get("/restaurants");
+      setRestaurants(restaurantsData);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.msg || "Google sign-in failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -133,6 +152,18 @@ const Register = () => {
               {isLoading ? "Creating account..." : "Create Account"}
             </button>
           </form>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <div className="google-btn">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google sign-in failed")}
+            />
+          </div>
+
           <p className="switch-link">
             Already have an account? <Link to="/login">Sign In</Link>
           </p>
@@ -258,6 +289,31 @@ const Wrapper = styled.div`
     color: var(--orange);
     margin-bottom: 12px;
     font-size: 14px;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: var(--text-third-color);
+    font-size: 13px;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--bg-secondary-color);
+  }
+
+  .divider span {
+    padding: 0 12px;
+  }
+
+  .google-btn {
+    display: flex;
+    justify-content: center;
   }
 
   .switch-link {

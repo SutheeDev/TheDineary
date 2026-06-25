@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import {
   Home,
   Error,
@@ -51,8 +52,9 @@ const App = () => {
   }, []);
 
   return (
-    <globalContext.Provider
-      value={{
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <globalContext.Provider
+        value={{
         user,
         setUser,
         restaurants,
@@ -82,7 +84,8 @@ const App = () => {
           <Route path="*" element={<Error />} />
         </Routes>
       </BrowserRouter>
-    </globalContext.Provider>
+      </globalContext.Provider>
+    </GoogleOAuthProvider>
   );
 };
 

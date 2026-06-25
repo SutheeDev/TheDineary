@@ -1,8 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authenticator } from "otplib";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.mjs";
 import { BadRequestError, UnauthorizedError } from "../errors/customErrors.mjs";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const cookieOptions = {
   httpOnly: true,
@@ -81,6 +84,50 @@ const login = async (req, res, next) => {
       const pendingToken = signMfaPendingToken(user._id);
       res.cookie("mfa_pending", pendingToken, mfaPendingCookieOptions);
       return res.status(200).json({ mfaRequired: true });
+    }
+
+    const token = signToken(user._id);
+    res.cookie("token", token, cookieOptions);
+
+    res.status(200).json(sanitizeUser(user));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Sign in with Google: verify the ID token from the browser, then link or
+// create an account and issue the normal session cookie. Skips the app's TOTP
+// step because Google already handles identity verification.
+const googleLogin = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      throw new BadRequestError("Missing Google credential");
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedError("Could not verify Google sign-in");
+    }
+
+    const { sub: googleId, email, name } = payload;
+
+    let user = await User.findOne({ googleId });
+    if (!user) {
+      // Link Google to an existing password account with the same email.
+      user = await User.findOne({ email });
+      if (user) {
+        user.googleId = googleId;
+        await user.save();
+      } else {
+        user = await User.create({ name, email, googleId });
+      }
     }
 
     const token = signToken(user._id);
@@ -218,6 +265,7 @@ const getMe = async (req, res, next) => {
 export {
   register,
   login,
+  googleLogin,
   verifyTotp,
   setupTotp,
   verifySetup,

@@ -16,11 +16,20 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    unique: true,
   },
+  // Required only for password accounts. Google accounts have no password.
   password: {
     type: String,
-    required: true,
+    required: function () {
+      return !this.googleId;
+    },
     minLength: 6,
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
   },
   totpSecret: {
     type: String,
