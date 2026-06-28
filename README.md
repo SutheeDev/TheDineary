@@ -97,14 +97,20 @@ MONGO_URI=your-mongodb-connection-string
 NODE_ENV=development
 JWT_SECRET=your-jwt-signing-secret
 JWT_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:5173
 ```
+
+`CLIENT_URL` is the address of the frontend the backend allows requests from (CORS). Set it to your deployed frontend URL in production.
 
 **Frontend** -- create `Frontend/.env`:
 
 ```
 VITE_CLOUD_NAME=your-cloudinary-cloud-name
 VITE_UPLOAD_PRESET_NAME=your-cloudinary-unsigned-preset
+VITE_API_URL=http://localhost:5000/api
 ```
+
+`VITE_API_URL` is the address of the backend the frontend talks to. Set it to your deployed backend URL in production.
 
 ## Running the App
 
