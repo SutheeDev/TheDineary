@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import {
   register,
   login,
@@ -14,10 +15,20 @@ import authMiddleware from "../middleware/authMiddleware.mjs";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+// Limit brute-force attempts on routes that accept a guessable secret
+// (password or 6-digit TOTP code): 10 requests per 15 minutes per IP.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { msg: "Too many attempts. Please try again later." },
+});
+
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
 router.post("/google", googleLogin);
-router.post("/totp/verify", verifyTotp);
+router.post("/totp/verify", authLimiter, verifyTotp);
 router.post("/totp/setup", authMiddleware, setupTotp);
 router.post("/totp/verify-setup", authMiddleware, verifySetup);
 router.post("/totp/disable", authMiddleware, disableTotp);

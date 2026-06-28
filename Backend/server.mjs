@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import morgan from "morgan";
 import connectDB from "./config/db.mjs";
 import errorHandlerMiddleware from "./middleware/errorHandlerMiddleware.mjs";
@@ -23,6 +24,7 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+app.use(helmet());
 app.use(express.json());
 app.use(
   cors({
