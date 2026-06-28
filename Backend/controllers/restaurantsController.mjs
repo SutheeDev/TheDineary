@@ -1,11 +1,7 @@
 import Restaurant from "../models/Restaurant.mjs";
-import {
-  NotFoundError,
-  BadRequestError,
-  ServerError,
-} from "../errors/customErrors.mjs";
+import { NotFoundError, BadRequestError } from "../errors/customErrors.mjs";
 
-const createRestaurant = async (req, res) => {
+const createRestaurant = async (req, res, next) => {
   try {
     const { name, visitDate, rating } = req.body;
     if (!name || !visitDate || !rating) {
@@ -17,20 +13,24 @@ const createRestaurant = async (req, res) => {
     const newRestaurant = await Restaurant.create(req.body);
 
     res.status(201).json(newRestaurant);
-  } catch (error) {
-    throw new ServerError("Something went wrong, please try again later");
+  } catch (err) {
+    next(err);
   }
 };
 
-const getRestaurants = async (req, res) => {
-  const restaurants = await Restaurant.find({
-    userId: req.userId,
-  }).sort({ visitDate: -1 });
+const getRestaurants = async (req, res, next) => {
+  try {
+    const restaurants = await Restaurant.find({
+      userId: req.userId,
+    }).sort({ visitDate: -1 });
 
-  res.status(200).json(restaurants);
+    res.status(200).json(restaurants);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getSingleRestaurant = async (req, res) => {
+const getSingleRestaurant = async (req, res, next) => {
   try {
     const restaurant = await Restaurant.findOne({
       _id: req.params.id,
@@ -42,12 +42,12 @@ const getSingleRestaurant = async (req, res) => {
     }
 
     res.status(200).json(restaurant);
-  } catch (error) {
-    throw new ServerError("Something went wrong, please try again later");
+  } catch (err) {
+    next(err);
   }
 };
 
-const updateRestaurant = async (req, res) => {
+const updateRestaurant = async (req, res, next) => {
   try {
     const { name, visitDate, rating } = req.body;
 
@@ -61,22 +61,30 @@ const updateRestaurant = async (req, res) => {
       { new: true }
     );
 
+    if (!updatedRestaurant) {
+      throw new NotFoundError("Restaurant not found");
+    }
+
     res.status(200).json(updatedRestaurant);
-  } catch (error) {
-    throw new ServerError("Something went wrong, please try again later");
+  } catch (err) {
+    next(err);
   }
 };
 
-const deleteRestaurant = async (req, res) => {
+const deleteRestaurant = async (req, res, next) => {
   try {
     const deletedRestaurant = await Restaurant.findOneAndDelete({
       _id: req.params.id,
       userId: req.userId,
     });
 
+    if (!deletedRestaurant) {
+      throw new NotFoundError("Restaurant not found");
+    }
+
     res.status(200).json(deletedRestaurant);
-  } catch (error) {
-    throw new ServerError("Something went wrong, please try again later");
+  } catch (err) {
+    next(err);
   }
 };
 
