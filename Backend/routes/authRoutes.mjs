@@ -12,6 +12,11 @@ import {
   getMe,
 } from "../controllers/authController.mjs";
 import authMiddleware from "../middleware/authMiddleware.mjs";
+import {
+  validate,
+  registerValidation,
+  loginValidation,
+} from "../middleware/validationMiddleware.mjs";
 
 const router = express.Router();
 
@@ -25,8 +30,8 @@ const authLimiter = rateLimit({
   message: { msg: "Too many attempts. Please try again later." },
 });
 
-router.post("/register", authLimiter, register);
-router.post("/login", authLimiter, login);
+router.post("/register", authLimiter, registerValidation, validate, register);
+router.post("/login", authLimiter, loginValidation, validate, login);
 router.post("/google", googleLogin);
 router.post("/totp/verify", authLimiter, verifyTotp);
 router.post("/totp/setup", authMiddleware, setupTotp);

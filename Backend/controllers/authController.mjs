@@ -40,10 +40,6 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      throw new BadRequestError("Please fill in all required fields");
-    }
-
     const existing = await User.findOne({ email });
     if (existing) {
       throw new BadRequestError("An account with that email already exists");
@@ -64,10 +60,6 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw new BadRequestError("Please provide email and password");
-    }
 
     const user = await User.findOne({ email });
     if (!user) {

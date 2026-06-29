@@ -1,13 +1,8 @@
 import Restaurant from "../models/Restaurant.mjs";
-import { NotFoundError, BadRequestError } from "../errors/customErrors.mjs";
+import { NotFoundError } from "../errors/customErrors.mjs";
 
 const createRestaurant = async (req, res, next) => {
   try {
-    const { name, visitDate, rating } = req.body;
-    if (!name || !visitDate || !rating) {
-      throw new BadRequestError("Please fill in all required fields");
-    }
-
     req.body.userId = req.userId;
 
     const newRestaurant = await Restaurant.create(req.body);
@@ -49,12 +44,6 @@ const getSingleRestaurant = async (req, res, next) => {
 
 const updateRestaurant = async (req, res, next) => {
   try {
-    const { name, visitDate, rating } = req.body;
-
-    if (!name || !visitDate || !rating) {
-      throw new BadRequestError("Please fill in all required fields");
-    }
-
     const updatedRestaurant = await Restaurant.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       req.body,
