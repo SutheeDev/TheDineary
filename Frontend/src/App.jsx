@@ -11,6 +11,7 @@ import {
   DashboardLayout,
   Login,
   Register,
+  RestaurantsMap,
 } from "./pages/index";
 import apiClient from "./utils/apiClient";
 
@@ -74,6 +75,7 @@ const App = () => {
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<Home />} />
             <Route path="/create" element={<CreateRestaurant />} />
+            <Route path="/map" element={<RestaurantsMap />} />
             <Route
               path="/restaurant/update/:id"
               element={<UpdateRestaurant />}
