@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { Loader } from "@googlemaps/js-api-loader";
 import { RateRangeEl, FormRow, Loading } from "../components";
 import apiClient from "../utils/apiClient";
 import { useGlobalContext } from "../App";
@@ -20,6 +21,30 @@ const initialState = {
   rating: 0,
   review: "",
   priceRange: "",
+  location: null,
+};
+
+// Google Places returns a primary type like "italian_restaurant"; turn it into
+// a clean cuisine label like "Italian".
+const formatCuisine = (primaryType) => {
+  if (!primaryType) return "";
+  return primaryType
+    .replace(/_restaurant$/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+// Google Places priceLevel enum -> our "$" string.
+const PRICE_MAP = {
+  INEXPENSIVE: "$",
+  MODERATE: "$$",
+  EXPENSIVE: "$$$",
+  VERY_EXPENSIVE: "$$$$",
+};
+
+const mapPriceLevel = (priceLevel) => {
+  if (!priceLevel) return "";
+  return PRICE_MAP[priceLevel.replace(/^PRICE_LEVEL_/, "")] || "";
 };
 
 const CreateRestaurant = () => {
@@ -28,6 +53,66 @@ const CreateRestaurant = () => {
   const { setRestaurants, setIsLoading, isLoading } = useGlobalContext();
 
   const navigate = useNavigate();
+
+  const searchRef = useRef(null);
+
+  // Mount Google's Places autocomplete web component and auto-fill the form
+  // when the user picks a place. The element manages its own billing session
+  // token, so the linked Place Details lookup below stays in the free tier.
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || !searchRef.current) return;
+
+    const loader = new Loader({ apiKey, version: "weekly" });
+    let autocompleteEl;
+    let cancelled = false;
+
+    const handlePlaceSelect = async ({ placePrediction }) => {
+      const place = placePrediction.toPlace();
+      await place.fetchFields({
+        fields: [
+          "displayName",
+          "primaryType",
+          "priceLevel",
+          "formattedAddress",
+          "location",
+          "id",
+        ],
+      });
+
+      setEntry((prev) => ({
+        ...prev,
+        name: place.displayName || prev.name,
+        cuisine: formatCuisine(place.primaryType) || prev.cuisine,
+        priceRange: mapPriceLevel(place.priceLevel) || prev.priceRange,
+        location: {
+          address: place.formattedAddress || "",
+          lat: place.location?.lat(),
+          lng: place.location?.lng(),
+          placeId: place.id,
+        },
+      }));
+    };
+
+    loader.importLibrary("places").then(({ PlaceAutocompleteElement }) => {
+      // The effect may have been torn down (e.g. React StrictMode's
+      // double-invoke in dev) before this async import resolved; bail out so
+      // we don't append a second, orphaned autocomplete box.
+      if (cancelled || !searchRef.current) return;
+      autocompleteEl = new PlaceAutocompleteElement();
+      autocompleteEl.className = "place-autocomplete";
+      searchRef.current.appendChild(autocompleteEl);
+      autocompleteEl.addEventListener("gmp-select", handlePlaceSelect);
+    });
+
+    return () => {
+      cancelled = true;
+      if (autocompleteEl) {
+        autocompleteEl.removeEventListener("gmp-select", handlePlaceSelect);
+        autocompleteEl.remove();
+      }
+    };
+  }, []);
 
   // Convert date into ISO format
   const handleDate = (date) => {
@@ -142,6 +227,16 @@ const CreateRestaurant = () => {
             </div>
 
             <div className="form-inputs">
+              {/* Place search (auto-fills name, cuisine, price, location) */}
+              <div className="place-search">
+                <label>Search for a restaurant</label>
+                <div ref={searchRef} className="place-search-input" />
+                <span className="place-search-hint">
+                  Pick a result to auto-fill the fields below. You can still
+                  edit anything or fill it in by hand.
+                </span>
+              </div>
+
               {/* Restaurant name */}
               <FormRow
                 type={"text"}
@@ -247,6 +342,46 @@ const CardsContainer = styled.div`
 
   .react-datepicker-wrapper {
     display: block;
+  }
+
+  .place-search {
+    margin-bottom: 16px;
+  }
+
+  .place-search .place-autocomplete {
+    width: 100%;
+    margin-top: 4px;
+    border-radius: var(--form-radius);
+    background-color: var(--bg-secondary-color);
+    border: none;
+    box-shadow: none;
+    /* The widget defaults to a dark Material theme and ignores the --gmp-mat-*
+       custom properties in this version. color-scheme: light plus the host box
+       styles above are what actually theme it to match the app. */
+    color-scheme: light;
+  }
+
+  /* It is a closed-shadow web component, so these exposed ::part() names are
+     the only styling hooks. Strip the inner input's own background, border and
+     focus ring so it shows the gray host box and matches the other inputs,
+     which have no border or focus outline. */
+  .place-search .place-autocomplete::part(input),
+  .place-search .place-autocomplete::part(input-container) {
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .place-search .place-autocomplete::part(focus-ring) {
+    display: none;
+  }
+
+  .place-search-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary-color, #888);
   }
 
   #image {

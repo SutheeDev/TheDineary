@@ -46,6 +46,16 @@ const restaurantValidation = [
     .optional()
     .isIn(["", "$", "$$", "$$$", "$$$$"])
     .withMessage("Invalid price range"),
+  body("location.lat")
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage("Latitude must be between -90 and 90"),
+  body("location.lng")
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage("Longitude must be between -180 and 180"),
+  body("location.address").optional().isString().trim(),
+  body("location.placeId").optional().isString().trim(),
 ];
 
 export { validate, registerValidation, loginValidation, restaurantValidation };

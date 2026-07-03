@@ -33,6 +33,12 @@ const restaurantSchema = new mongoose.Schema(
       default:
         "https://res.cloudinary.com/dnc7potxo/image/upload/v1738184597/DineDiary/placeholder-image.png",
     },
+    location: {
+      address: { type: String },
+      lat: { type: Number },
+      lng: { type: Number },
+      placeId: { type: String },
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
