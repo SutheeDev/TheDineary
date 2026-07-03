@@ -151,6 +151,9 @@ const MapWrapper = styled.div`
     border-radius: var(--card-radius);
     overflow: hidden;
     box-shadow: var(--card-shadow);
+    /* Contain Leaflet's high internal z-index (its controls sit at 1000) so the
+       map cannot render on top of the mobile sidebar's dark backdrop. */
+    isolation: isolate;
   }
 
   /* Strip the white box Leaflet puts behind div-based markers so only the pin
