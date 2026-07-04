@@ -152,6 +152,7 @@ const CreateRestaurant = () => {
               <input
                 className="image-upload"
                 type="file"
+                accept="image/*"
                 name="image"
                 id="image"
                 onChange={(e) => handleFileChange(e)}
