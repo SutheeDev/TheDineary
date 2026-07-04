@@ -128,7 +128,7 @@ const UpdateUser = () => {
               {searchEnabled && (
                 <div className="home-address">
                   <div className="home-header">
-                    <label className="home-label">Home address</label>
+                    <h2 className="home-heading">Home Address</h2>
                     {hasHomeLocation && (
                       <button
                         type="button"
@@ -141,12 +141,10 @@ const UpdateUser = () => {
                       </button>
                     )}
                   </div>
-                  <p className="home-hint">
-                    Used as the starting point for your map when live location is
-                    unavailable. Search to auto-fill the fields, then edit if needed.
-                  </p>
                   <PlaceSearch
+                    className="home-search"
                     clearOnSelect
+                    hideClearButton
                     onSelect={(place) =>
                       setUserState({
                         ...userState,
@@ -172,42 +170,46 @@ const UpdateUser = () => {
                     labelText="street address"
                     placeholder="Street address"
                   />
-                  <FormRow
-                    type="text"
-                    name="city"
-                    value={userState.homeLocation?.city || ""}
-                    handleChange={(e) => handleHomeFieldChange("city", e.target.value)}
-                    labelText="city"
-                    placeholder="City"
-                  />
-                  <FormRow
-                    type="text"
-                    name="state"
-                    value={userState.homeLocation?.state || ""}
-                    handleChange={(e) => handleHomeFieldChange("state", e.target.value)}
-                    labelText="state / province / region"
-                    placeholder="State / Province / Region"
-                  />
-                  <FormRow
-                    type="text"
-                    name="postalCode"
-                    value={userState.homeLocation?.postalCode || ""}
-                    handleChange={(e) =>
-                      handleHomeFieldChange("postalCode", e.target.value)
-                    }
-                    labelText="postal code / zip"
-                    placeholder="Postal code / ZIP"
-                  />
-                  <FormRow
-                    type="text"
-                    name="country"
-                    value={userState.homeLocation?.country || ""}
-                    handleChange={(e) =>
-                      handleHomeFieldChange("country", e.target.value)
-                    }
-                    labelText="country"
-                    placeholder="Country"
-                  />
+                  <div className="field-row">
+                    <FormRow
+                      type="text"
+                      name="city"
+                      value={userState.homeLocation?.city || ""}
+                      handleChange={(e) => handleHomeFieldChange("city", e.target.value)}
+                      labelText="city"
+                      placeholder="City"
+                    />
+                    <FormRow
+                      type="text"
+                      name="state"
+                      value={userState.homeLocation?.state || ""}
+                      handleChange={(e) => handleHomeFieldChange("state", e.target.value)}
+                      labelText="state / province / region"
+                      placeholder="State / Province / Region"
+                    />
+                  </div>
+                  <div className="field-row">
+                    <FormRow
+                      type="text"
+                      name="postalCode"
+                      value={userState.homeLocation?.postalCode || ""}
+                      handleChange={(e) =>
+                        handleHomeFieldChange("postalCode", e.target.value)
+                      }
+                      labelText="postal code / zip"
+                      placeholder="Postal code / ZIP"
+                    />
+                    <FormRow
+                      type="text"
+                      name="country"
+                      value={userState.homeLocation?.country || ""}
+                      handleChange={(e) =>
+                        handleHomeFieldChange("country", e.target.value)
+                      }
+                      labelText="country"
+                      placeholder="Country"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -301,7 +303,9 @@ const CardsContainer = styled.div`
   }
 
   .home-address {
-    margin-top: 16px;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
   }
 
   .home-header {
@@ -309,27 +313,34 @@ const CardsContainer = styled.div`
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    margin-bottom: 4px;
+    margin-bottom: 16px;
   }
 
-  .home-label {
-    display: block;
-    font-size: 14px;
-  }
-
-  .home-hint {
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: var(--text-third-color);
+  .home-heading {
+    font-size: 20px;
   }
 
   .home-clear {
     border: none;
-    background: none;
-    color: var(--orange);
+    background-color: var(--bg-secondary-color);
+    color: var(--text-third-color);
     cursor: pointer;
-    padding: 0;
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
     font-size: 14px;
+  }
+
+  .home-search {
+    margin-bottom: 24px;
+  }
+
+  .field-row {
+    display: flex;
+    gap: 16px;
+  }
+
+  .field-row > * {
+    flex: 1;
   }
 
   .cancel-btn {
@@ -379,5 +390,12 @@ const CardsContainer = styled.div`
   @media (max-width: 1024px) {
     padding-left: var(--container-padding);
     padding-top: var(--container-padding);
+  }
+
+  @media (max-width: 639px) {
+    .field-row {
+      flex-direction: column;
+      gap: 0;
+    }
   }
 `;

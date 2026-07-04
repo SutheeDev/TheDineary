@@ -59,7 +59,7 @@ const parseAddressComponents = (components) => {
 // ({ name, cuisine, priceRange, location }). The element manages its own
 // billing session token, so the linked Place Details lookup stays in the free
 // tier. If VITE_GOOGLE_MAPS_API_KEY is blank it renders nothing.
-const PlaceSearch = ({ onSelect, className, clearOnSelect }) => {
+const PlaceSearch = ({ onSelect, className, clearOnSelect, hideClearButton }) => {
   const searchRef = useRef(null);
 
   // Keep the latest onSelect in a ref so the mount effect can stay [] (mount
@@ -69,6 +69,9 @@ const PlaceSearch = ({ onSelect, className, clearOnSelect }) => {
 
   const clearOnSelectRef = useRef(clearOnSelect);
   clearOnSelectRef.current = clearOnSelect;
+
+  const hideClearButtonRef = useRef(hideClearButton);
+  hideClearButtonRef.current = hideClearButton;
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -121,10 +124,48 @@ const PlaceSearch = ({ onSelect, className, clearOnSelect }) => {
       // double-invoke in dev) before this async import resolved; bail out so
       // we don't append a second, orphaned autocomplete box.
       if (cancelled || !searchRef.current) return;
+
+      // The widget's built-in "clear" (x) button lives in a closed shadow root
+      // and is not exposed as a ::part, so it can't be styled from outside. To
+      // hide it we briefly force *only this element's* shadow root to open mode
+      // while it mounts, then inject a rule into that shadow root. The guard
+      // (this === autocompleteEl) keeps every other component's shadow closed.
+      let restoreAttachShadow;
+      if (hideClearButtonRef.current) {
+        const origAttachShadow = Element.prototype.attachShadow;
+        Element.prototype.attachShadow = function (init) {
+          const opts = this === autocompleteEl ? { ...init, mode: "open" } : init;
+          return origAttachShadow.call(this, opts);
+        };
+        restoreAttachShadow = () => {
+          Element.prototype.attachShadow = origAttachShadow;
+        };
+      }
+
       autocompleteEl = new PlaceAutocompleteElement();
       autocompleteEl.className = "place-autocomplete";
       searchRef.current.appendChild(autocompleteEl);
       autocompleteEl.addEventListener("gmp-select", handlePlaceSelect);
+
+      if (hideClearButtonRef.current) {
+        // The shadow root attaches asynchronously after the element connects,
+        // so poll briefly until it exists, inject the hide rule, then restore
+        // the original attachShadow.
+        let tries = 0;
+        const injectHide = () => {
+          if (autocompleteEl?.shadowRoot) {
+            const style = document.createElement("style");
+            style.textContent = ".clear-button { display: none; }";
+            autocompleteEl.shadowRoot.appendChild(style);
+            restoreAttachShadow();
+          } else if (tries++ < 20) {
+            setTimeout(injectHide, 25);
+          } else {
+            restoreAttachShadow();
+          }
+        };
+        injectHide();
+      }
     });
 
     return () => {
