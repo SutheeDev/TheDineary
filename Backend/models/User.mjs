@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
   // Saved home address used as the map's starting point when the browser cannot
   // provide a live location. Same shape as a restaurant's location.
   homeLocation: {
+    line1: { type: String },
+    city: { type: String },
+    state: { type: String },
+    postalCode: { type: String },
+    country: { type: String },
     address: { type: String },
     lat: { type: Number },
     lng: { type: Number },

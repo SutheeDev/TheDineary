@@ -25,18 +25,50 @@ const mapPriceLevel = (priceLevel) => {
   return PRICE_MAP[priceLevel.replace(/^PRICE_LEVEL_/, "")] || "";
 };
 
+// Google Places (New) returns addressComponents as a list of parts, each with
+// a `types` array plus `longText`/`shortText`. Pull them apart into the
+// separate labelled fields we show (built to work for any country, so fields a
+// country lacks -- like a state or postal code -- just come back empty).
+const parseAddressComponents = (components) => {
+  const result = { line1: "", city: "", state: "", postalCode: "", country: "" };
+  if (!components) return result;
+
+  const find = (type) =>
+    components.find((c) => c.types?.includes(type));
+
+  const streetNumber = find("street_number")?.longText || "";
+  const route = find("route")?.longText || "";
+  result.line1 = [streetNumber, route].filter(Boolean).join(" ");
+
+  const cityPart =
+    find("locality") ||
+    find("postal_town") ||
+    find("sublocality_level_1") ||
+    find("administrative_area_level_2");
+  result.city = cityPart?.longText || "";
+
+  result.state = find("administrative_area_level_1")?.longText || "";
+  result.postalCode = find("postal_code")?.longText || "";
+  result.country = find("country")?.longText || "";
+
+  return result;
+};
+
 // Mounts Google's Places autocomplete web component. When the user picks a
 // place it fetches the details once and hands the caller a normalized object
 // ({ name, cuisine, priceRange, location }). The element manages its own
 // billing session token, so the linked Place Details lookup stays in the free
 // tier. If VITE_GOOGLE_MAPS_API_KEY is blank it renders nothing.
-const PlaceSearch = ({ onSelect, className }) => {
+const PlaceSearch = ({ onSelect, className, clearOnSelect }) => {
   const searchRef = useRef(null);
 
   // Keep the latest onSelect in a ref so the mount effect can stay [] (mount
   // once) while still calling the caller's current callback.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+
+  const clearOnSelectRef = useRef(clearOnSelect);
+  clearOnSelectRef.current = clearOnSelect;
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -54,10 +86,13 @@ const PlaceSearch = ({ onSelect, className }) => {
           "primaryType",
           "priceLevel",
           "formattedAddress",
+          "addressComponents",
           "location",
           "id",
         ],
       });
+
+      const parts = parseAddressComponents(place.addressComponents);
 
       onSelectRef.current({
         name: place.displayName || "",
@@ -68,8 +103,17 @@ const PlaceSearch = ({ onSelect, className }) => {
           lat: place.location?.lat(),
           lng: place.location?.lng(),
           placeId: place.id,
+          ...parts,
         },
       });
+
+      if (clearOnSelectRef.current && autocompleteEl) {
+        try {
+          autocompleteEl.value = null;
+        } catch {
+          // Some versions of the widget don't allow clearing the text; ignore.
+        }
+      }
     };
 
     loader.importLibrary("places").then(({ PlaceAutocompleteElement }) => {

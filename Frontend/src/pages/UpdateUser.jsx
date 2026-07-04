@@ -20,6 +20,15 @@ const UpdateUser = () => {
 
   const [userState, setUserState] = useState(initialUser);
   const searchEnabled = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+  const hasHomeLocation = Object.values(userState.homeLocation || {}).some(Boolean);
+
+  // Hand-editing a single field. lat/lng are left as-is on purpose: they only
+  // change when a fresh address is picked from the search box.
+  const handleHomeFieldChange = (key, value) =>
+    setUserState({
+      ...userState,
+      homeLocation: { ...(userState.homeLocation || {}), [key]: value },
+    });
   const [setupUrl, setSetupUrl] = useState("");
   const [setupCode, setSetupCode] = useState("");
   const [twoFAError, setTwoFAError] = useState("");
@@ -118,16 +127,35 @@ const UpdateUser = () => {
 
               {searchEnabled && (
                 <div className="home-address">
-                  <label className="home-label">Home address</label>
+                  <div className="home-header">
+                    <label className="home-label">Home address</label>
+                    {hasHomeLocation && (
+                      <button
+                        type="button"
+                        className="home-clear"
+                        onClick={() =>
+                          setUserState({ ...userState, homeLocation: null })
+                        }
+                      >
+                        Clear address
+                      </button>
+                    )}
+                  </div>
                   <p className="home-hint">
                     Used as the starting point for your map when live location is
-                    unavailable.
+                    unavailable. Search to auto-fill the fields, then edit if needed.
                   </p>
                   <PlaceSearch
+                    clearOnSelect
                     onSelect={(place) =>
                       setUserState({
                         ...userState,
                         homeLocation: {
+                          line1: place.location.line1,
+                          city: place.location.city,
+                          state: place.location.state,
+                          postalCode: place.location.postalCode,
+                          country: place.location.country,
                           address: place.location.address,
                           lat: place.location.lat,
                           lng: place.location.lng,
@@ -135,20 +163,51 @@ const UpdateUser = () => {
                       })
                     }
                   />
-                  {userState.homeLocation?.address && (
-                    <div className="home-current">
-                      <span>{userState.homeLocation.address}</span>
-                      <button
-                        type="button"
-                        className="home-remove"
-                        onClick={() =>
-                          setUserState({ ...userState, homeLocation: null })
-                        }
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
+
+                  <FormRow
+                    type="text"
+                    name="line1"
+                    value={userState.homeLocation?.line1 || ""}
+                    handleChange={(e) => handleHomeFieldChange("line1", e.target.value)}
+                    labelText="street address"
+                    placeholder="Street address"
+                  />
+                  <FormRow
+                    type="text"
+                    name="city"
+                    value={userState.homeLocation?.city || ""}
+                    handleChange={(e) => handleHomeFieldChange("city", e.target.value)}
+                    labelText="city"
+                    placeholder="City"
+                  />
+                  <FormRow
+                    type="text"
+                    name="state"
+                    value={userState.homeLocation?.state || ""}
+                    handleChange={(e) => handleHomeFieldChange("state", e.target.value)}
+                    labelText="state / province / region"
+                    placeholder="State / Province / Region"
+                  />
+                  <FormRow
+                    type="text"
+                    name="postalCode"
+                    value={userState.homeLocation?.postalCode || ""}
+                    handleChange={(e) =>
+                      handleHomeFieldChange("postalCode", e.target.value)
+                    }
+                    labelText="postal code / zip"
+                    placeholder="Postal code / ZIP"
+                  />
+                  <FormRow
+                    type="text"
+                    name="country"
+                    value={userState.homeLocation?.country || ""}
+                    handleChange={(e) =>
+                      handleHomeFieldChange("country", e.target.value)
+                    }
+                    labelText="country"
+                    placeholder="Country"
+                  />
                 </div>
               )}
 
@@ -245,9 +304,16 @@ const CardsContainer = styled.div`
     margin-top: 16px;
   }
 
+  .home-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
   .home-label {
     display: block;
-    margin-bottom: 4px;
     font-size: 14px;
   }
 
@@ -257,16 +323,7 @@ const CardsContainer = styled.div`
     color: var(--text-third-color);
   }
 
-  .home-current {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-    font-size: 14px;
-  }
-
-  .home-remove {
+  .home-clear {
     border: none;
     background: none;
     color: var(--orange);
