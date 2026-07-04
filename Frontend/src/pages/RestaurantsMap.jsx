@@ -29,6 +29,7 @@ const makePin = (color) =>
 
 const restaurantIcon = makePin("#ff5252");
 const resultIcon = makePin("#2d7ff9");
+const userIcon = makePin("#2ecc71");
 
 // Decide where the map should sit. Live location wins when it arrives. Failing
 // that, a saved home address is used right away so the map is not stuck waiting
@@ -194,6 +195,10 @@ const RestaurantsMap = () => {
     return null;
   }, [user]);
 
+  // Where to drop the "you" pin: the live fix if we have one, otherwise the
+  // saved home. Null when there is neither, so no pin renders.
+  const userMarkerPosition = userLocation || homeLocation;
+
   // Ask the browser for the user's location so the map opens near them instead
   // of zooming out to cover far-apart pins. macOS CoreLocation often reports a
   // transient kCLErrorLocationUnknown (error code 2) on the first attempt and
@@ -285,6 +290,11 @@ const RestaurantsMap = () => {
                     />
                     <ResultMarker result={result} onAdd={handleAdd} />
                   </>
+                )}
+                {userMarkerPosition && (
+                  <Marker position={userMarkerPosition} icon={userIcon}>
+                    <Popup>{userLocation ? "You are here" : "Home"}</Popup>
+                  </Marker>
                 )}
                 {mapped.map((res) => (
                   <RestaurantMarker key={res._id} res={res} />
