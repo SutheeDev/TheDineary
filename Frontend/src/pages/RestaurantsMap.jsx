@@ -30,17 +30,23 @@ const makePin = (color) =>
 const restaurantIcon = makePin("#ff5252");
 const resultIcon = makePin("#2d7ff9");
 
-// Recenter the map once the user's location is known; otherwise fall back to
-// framing all pins (or the default center if there are none).
-const RecenterMap = ({ userLocation, points }) => {
+// Decide where the map should sit. Live location wins when it arrives. Failing
+// that, a saved home address is used right away so the map is not stuck waiting
+// (this is the reliable path for devices that never resolve a live fix). Only
+// when there is neither a live fix nor a saved home do we fall back to framing
+// all pins, and only after geolocation has actually failed rather than while it
+// is still pending.
+const RecenterMap = ({ userLocation, homeLocation, locationStatus, points }) => {
   const map = useMap();
   useEffect(() => {
     if (userLocation) {
       map.setView(userLocation, DEFAULT_ZOOM);
-    } else if (points.length > 0) {
+    } else if (homeLocation) {
+      map.setView(homeLocation, DEFAULT_ZOOM);
+    } else if (locationStatus === "failed" && points.length > 0) {
       map.fitBounds(points, { padding: [50, 50], maxZoom: 16 });
     }
-  }, [userLocation, points, map]);
+  }, [userLocation, homeLocation, locationStatus, points, map]);
   return null;
 };
 
@@ -139,8 +145,12 @@ const RestaurantMarker = ({ res }) => {
 };
 
 const RestaurantsMap = () => {
-  const { restaurants, isLoading } = useGlobalContext();
+  const { restaurants, isLoading, user } = useGlobalContext();
   const [userLocation, setUserLocation] = useState(null);
+  // "pending" while we wait for the browser's location; "ok" once we have it;
+  // "failed" if it is denied, unavailable, or times out. The all-pins fallback
+  // only kicks in on "failed".
+  const [locationStatus, setLocationStatus] = useState("pending");
   const [result, setResult] = useState(null);
   const navigate = useNavigate();
 
@@ -174,16 +184,60 @@ const RestaurantsMap = () => {
     [mapped]
   );
 
+  // The user's saved home address, used as the map's fallback start when there
+  // is no live location. Null unless both coordinates are present.
+  const homeLocation = useMemo(() => {
+    const home = user?.homeLocation;
+    if (typeof home?.lat === "number" && typeof home?.lng === "number") {
+      return [home.lat, home.lng];
+    }
+    return null;
+  }, [user]);
+
   // Ask the browser for the user's location so the map opens near them instead
-  // of zooming out to cover far-apart pins. Silently keep the fallback view if
-  // the user denies the prompt or geolocation is unavailable.
+  // of zooming out to cover far-apart pins. macOS CoreLocation often reports a
+  // transient kCLErrorLocationUnknown (error code 2) on the first attempt and
+  // then succeeds a moment later, so we keep the request open with
+  // watchPosition and take the first good fix rather than giving up on the
+  // first error. A permission denial is final; any other outcome just waits
+  // until an overall deadline, after which we fall back to framing all pins.
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-      () => {},
-      { enableHighAccuracy: false, timeout: 8000 }
+    if (!navigator.geolocation) {
+      setLocationStatus("failed");
+      return;
+    }
+
+    let settled = false;
+    let watchId;
+    let deadlineId;
+    const finish = (status) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadlineId);
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+      setLocationStatus(status);
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        finish("ok");
+      },
+      (err) => {
+        console.warn("Map geolocation error:", err.code, err.message);
+        if (err.code === err.PERMISSION_DENIED) finish("failed");
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
     );
+
+    // Stop waiting after 20s of transient failures and fall back to all pins.
+    deadlineId = setTimeout(() => finish("failed"), 20000);
+
+    return () => {
+      settled = true;
+      clearTimeout(deadlineId);
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   return (
@@ -218,7 +272,12 @@ const RestaurantsMap = () => {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 />
-                <RecenterMap userLocation={userLocation} points={points} />
+                <RecenterMap
+                  userLocation={userLocation}
+                  homeLocation={homeLocation}
+                  locationStatus={locationStatus}
+                  points={points}
+                />
                 {result && (
                   <>
                     <FlyToResult

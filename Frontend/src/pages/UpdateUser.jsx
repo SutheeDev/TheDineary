@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalContext } from "../App";
-import { FormRow, Loading } from "../components";
+import { FormRow, Loading, PlaceSearch } from "../components";
 import styled from "styled-components";
 import apiClient from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
@@ -15,9 +15,11 @@ const UpdateUser = () => {
     name: user.name,
     lastname: user.lastname,
     email: user.email,
+    homeLocation: user.homeLocation || null,
   };
 
   const [userState, setUserState] = useState(initialUser);
+  const searchEnabled = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
   const [setupUrl, setSetupUrl] = useState("");
   const [setupCode, setSetupCode] = useState("");
   const [twoFAError, setTwoFAError] = useState("");
@@ -114,6 +116,42 @@ const UpdateUser = () => {
                 placeholder="Email"
               />
 
+              {searchEnabled && (
+                <div className="home-address">
+                  <label className="home-label">Home address</label>
+                  <p className="home-hint">
+                    Used as the starting point for your map when live location is
+                    unavailable.
+                  </p>
+                  <PlaceSearch
+                    onSelect={(place) =>
+                      setUserState({
+                        ...userState,
+                        homeLocation: {
+                          address: place.location.address,
+                          lat: place.location.lat,
+                          lng: place.location.lng,
+                        },
+                      })
+                    }
+                  />
+                  {userState.homeLocation?.address && (
+                    <div className="home-current">
+                      <span>{userState.homeLocation.address}</span>
+                      <button
+                        type="button"
+                        className="home-remove"
+                        onClick={() =>
+                          setUserState({ ...userState, homeLocation: null })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="btn-container">
                 <button className="btn orange-btn" type="submit">
                   Save Profile
@@ -201,6 +239,40 @@ const CardsContainer = styled.div`
   .btn-container {
     margin-top: 32px;
     text-align: right;
+  }
+
+  .home-address {
+    margin-top: 16px;
+  }
+
+  .home-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .home-hint {
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-third-color);
+  }
+
+  .home-current {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+
+  .home-remove {
+    border: none;
+    background: none;
+    color: var(--orange);
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
   }
 
   .cancel-btn {
