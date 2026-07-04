@@ -77,6 +77,67 @@ const ResultMarker = ({ result, onAdd }) => {
   );
 };
 
+// A logged restaurant's pin. The popup opens on hover instead of click. A short
+// close delay lets the mouse cross the gap from the pin to the popup without it
+// snapping shut, and hovering the popup itself keeps it open long enough to
+// click "View details".
+const RestaurantMarker = ({ res }) => {
+  const markerRef = useRef(null);
+  const closeTimer = useRef(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => {
+      markerRef.current?.closePopup();
+    }, 400);
+  };
+
+  useEffect(() => () => cancelClose(), []);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[res.location.lat, res.location.lng]}
+      icon={restaurantIcon}
+      eventHandlers={{
+        mouseover: () => {
+          cancelClose();
+          markerRef.current?.openPopup();
+        },
+        mouseout: scheduleClose,
+        // Attach the hover listeners to the whole popup box (padding, close
+        // button and tip included) rather than just the inner content, so
+        // moving near an edge does not count as leaving the popup.
+        popupopen: (e) => {
+          const el = e.popup.getElement();
+          if (!el) return;
+          el.addEventListener("mouseenter", cancelClose);
+          el.addEventListener("mouseleave", scheduleClose);
+        },
+        popupclose: (e) => {
+          const el = e.popup.getElement();
+          if (!el) return;
+          el.removeEventListener("mouseenter", cancelClose);
+          el.removeEventListener("mouseleave", scheduleClose);
+        },
+      }}
+    >
+      <Popup>
+        <strong>{res.name}</strong>
+        {res.location.address && <div>{res.location.address}</div>}
+        <Link to={`/restaurant/${res._id}`}>View details</Link>
+      </Popup>
+    </Marker>
+  );
+};
+
 const RestaurantsMap = () => {
   const { restaurants, isLoading } = useGlobalContext();
   const [userLocation, setUserLocation] = useState(null);
@@ -167,19 +228,7 @@ const RestaurantsMap = () => {
                   </>
                 )}
                 {mapped.map((res) => (
-                  <Marker
-                    key={res._id}
-                    position={[res.location.lat, res.location.lng]}
-                    icon={restaurantIcon}
-                  >
-                    <Popup>
-                      <strong>{res.name}</strong>
-                      {res.location.address && (
-                        <div>{res.location.address}</div>
-                      )}
-                      <Link to={`/restaurant/${res._id}`}>View details</Link>
-                    </Popup>
-                  </Marker>
+                  <RestaurantMarker key={res._id} res={res} />
                 ))}
               </MapContainer>
             </div>
