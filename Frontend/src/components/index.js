@@ -11,6 +11,7 @@ import FormRow from "./FormRow";
 import DisplayRangeEl from "./DisplayRangeEl";
 import DropdownMenu from "./DropdownMenu";
 import ProfileDropdown from "./ProfileDropdown";
+import PlaceSearch from "./PlaceSearch";
 
 export {
   Card,
@@ -26,4 +27,5 @@ export {
   DisplayRangeEl,
   DropdownMenu,
   ProfileDropdown,
+  PlaceSearch,
 };

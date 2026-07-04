@@ -1,29 +1,34 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import styled from "styled-components";
 
 import { useGlobalContext } from "../App";
-import { Loading } from "../components/index";
+import { Loading, PlaceSearch } from "../components/index";
 
 // Center on Bangkok when there is no user location or pins to frame.
 const DEFAULT_CENTER = [13.7563, 100.5018];
 const DEFAULT_ZOOM = 14;
 
-// Custom pin drawn as inline SVG in the app's orange so there is no image file
-// to load (Leaflet's default PNG marker breaks under Vite's bundler).
-const restaurantIcon = L.divIcon({
-  className: "restaurant-pin",
-  html: `<svg width="28" height="40" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#ff5252"/>
+// Custom pin drawn as inline SVG so there is no image file to load (Leaflet's
+// default PNG marker breaks under Vite's bundler). Logged places use the app's
+// orange; a searched-but-not-yet-added result uses blue so it stands apart.
+const makePin = (color) =>
+  L.divIcon({
+    className: "restaurant-pin",
+    html: `<svg width="28" height="40" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}"/>
     <circle cx="12" cy="12" r="5" fill="#ffffff"/>
   </svg>`,
-  iconSize: [28, 40],
-  iconAnchor: [14, 40],
-  popupAnchor: [0, -36],
-});
+    iconSize: [28, 40],
+    iconAnchor: [14, 40],
+    popupAnchor: [0, -36],
+  });
+
+const restaurantIcon = makePin("#ff5252");
+const resultIcon = makePin("#2d7ff9");
 
 // Recenter the map once the user's location is known; otherwise fall back to
 // framing all pins (or the default center if there are none).
@@ -39,9 +44,59 @@ const RecenterMap = ({ userLocation, points }) => {
   return null;
 };
 
+// Pan to a freshly searched result so the temporary pin is in view.
+const FlyToResult = ({ position }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.setView(position, DEFAULT_ZOOM);
+  }, [position, map]);
+  return null;
+};
+
+// The temporary blue pin for a search result, with a popup that opens on its
+// own and offers to add the place.
+const ResultMarker = ({ result, onAdd }) => {
+  const markerRef = useRef(null);
+  useEffect(() => {
+    if (markerRef.current) markerRef.current.openPopup();
+  }, [result]);
+  return (
+    <Marker
+      ref={markerRef}
+      position={[result.location.lat, result.location.lng]}
+      icon={resultIcon}
+    >
+      <Popup>
+        <strong>{result.name}</strong>
+        {result.location.address && <div>{result.location.address}</div>}
+        <button type="button" className="add-result-btn" onClick={onAdd}>
+          Add this restaurant
+        </button>
+      </Popup>
+    </Marker>
+  );
+};
+
 const RestaurantsMap = () => {
   const { restaurants, isLoading } = useGlobalContext();
   const [userLocation, setUserLocation] = useState(null);
+  const [result, setResult] = useState(null);
+  const navigate = useNavigate();
+
+  const searchEnabled = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+
+  // A picked search result drops a temporary pin. Ignore results with no
+  // coordinates since there would be nothing to place on the map.
+  const handleSearchSelect = (place) => {
+    if (typeof place.location?.lat !== "number") return;
+    setResult(place);
+  };
+
+  // Hand the picked place to the create form via router state so it opens
+  // pre-filled; the form returns here after saving.
+  const handleAdd = () => {
+    navigate("/create", { state: { prefill: result } });
+  };
 
   const mapped = useMemo(
     () =>
@@ -86,6 +141,12 @@ const RestaurantsMap = () => {
               </div>
             )}
             <div className="map-box">
+              {searchEnabled && (
+                <PlaceSearch
+                  className="map-search"
+                  onSelect={handleSearchSelect}
+                />
+              )}
               <MapContainer
                 center={DEFAULT_CENTER}
                 zoom={DEFAULT_ZOOM}
@@ -97,6 +158,14 @@ const RestaurantsMap = () => {
                   url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 />
                 <RecenterMap userLocation={userLocation} points={points} />
+                {result && (
+                  <>
+                    <FlyToResult
+                      position={[result.location.lat, result.location.lng]}
+                    />
+                    <ResultMarker result={result} onAdd={handleAdd} />
+                  </>
+                )}
                 {mapped.map((res) => (
                   <Marker
                     key={res._id}
@@ -146,6 +215,7 @@ const MapWrapper = styled.div`
   }
 
   .map-box {
+    position: relative;
     height: calc(100vh - 340px);
     min-height: 400px;
     border-radius: var(--card-radius);
@@ -154,6 +224,30 @@ const MapWrapper = styled.div`
     /* Contain Leaflet's high internal z-index (its controls sit at 1000) so the
        map cannot render on top of the mobile sidebar's dark backdrop. */
     isolation: isolate;
+  }
+
+  /* Floating search box over the map. z-index sits above Leaflet's own panes
+     and controls (which top out at 1000). Centered so it clears the zoom
+     control in the top-left corner. */
+  .map-search {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(360px, calc(100% - 24px));
+    border-radius: var(--form-radius);
+    box-shadow: var(--card-shadow);
+  }
+
+  .add-result-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--form-radius);
+    background-color: var(--orange);
+    color: #fff;
+    cursor: pointer;
   }
 
   /* Strip the white box Leaflet puts behind div-based markers so only the pin
