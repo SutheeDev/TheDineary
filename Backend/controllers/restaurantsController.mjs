@@ -1,9 +1,20 @@
 import Restaurant from "../models/Restaurant.mjs";
 import { NotFoundError } from "../errors/customErrors.mjs";
 
+// Average the four category ratings and round to 1 decimal. The client only
+// sends the ratings, never the score, so it is always derived server-side.
+const computeFinalScore = (ratings) => {
+  const { food, service, ambience, value } = ratings;
+  return Math.round(((food + service + ambience + value) / 4) * 10) / 10;
+};
+
 const createRestaurant = async (req, res, next) => {
   try {
     req.body.userId = req.userId;
+
+    if (req.body.ratings) {
+      req.body.finalScore = computeFinalScore(req.body.ratings);
+    }
 
     const newRestaurant = await Restaurant.create(req.body);
 
@@ -44,6 +55,10 @@ const getSingleRestaurant = async (req, res, next) => {
 
 const updateRestaurant = async (req, res, next) => {
   try {
+    if (req.body.ratings) {
+      req.body.finalScore = computeFinalScore(req.body.ratings);
+    }
+
     const updatedRestaurant = await Restaurant.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       req.body,

@@ -15,11 +15,22 @@ const restaurantSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    rating: {
+    ratings: {
+      food: { type: Number, min: 0.5, max: 5, required: true },
+      service: { type: Number, min: 0.5, max: 5, required: true },
+      ambience: { type: Number, min: 0.5, max: 5, required: true },
+      value: { type: Number, min: 0.5, max: 5, required: true },
+    },
+    notes: {
+      food: { type: String },
+      service: { type: String },
+      ambience: { type: String },
+      value: { type: String },
+    },
+    finalScore: {
       type: Number,
-      min: 1,
+      min: 0.5,
       max: 5,
-      required: true,
     },
     review: {
       type: String,

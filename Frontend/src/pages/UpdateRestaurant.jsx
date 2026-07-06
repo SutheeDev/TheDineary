@@ -12,6 +12,13 @@ import { TiStarFullOutline } from "react-icons/ti";
 import { BiDollar } from "react-icons/bi";
 import { BsUpload } from "react-icons/bs";
 
+const CATEGORIES = [
+  { key: "food", label: "Food" },
+  { key: "service", label: "Service" },
+  { key: "ambience", label: "Ambience" },
+  { key: "value", label: "Value" },
+];
+
 const UpdateRestaurant = () => {
   const { restaurants, setRestaurants, setIsLoading, isLoading } =
     useGlobalContext();
@@ -28,7 +35,18 @@ const UpdateRestaurant = () => {
     name: restaurant.name,
     cuisine: cuisine || "",
     visitDate: restaurant.visitDate,
-    rating: restaurant.rating,
+    ratings: {
+      food: restaurant.ratings?.food || 0,
+      service: restaurant.ratings?.service || 0,
+      ambience: restaurant.ratings?.ambience || 0,
+      value: restaurant.ratings?.value || 0,
+    },
+    notes: {
+      food: restaurant.notes?.food || "",
+      service: restaurant.notes?.service || "",
+      ambience: restaurant.notes?.ambience || "",
+      value: restaurant.notes?.value || "",
+    },
     review: review || "",
     priceRange: priceRange || 0,
     image:
@@ -37,6 +55,20 @@ const UpdateRestaurant = () => {
   };
 
   const [entry, setEntry] = useState(initialState);
+
+  const handleRating = (key, value) => {
+    setEntry((prev) => ({
+      ...prev,
+      ratings: { ...prev.ratings, [key]: value },
+    }));
+  };
+
+  const handleNote = (key, value) => {
+    setEntry((prev) => ({
+      ...prev,
+      notes: { ...prev.notes, [key]: value },
+    }));
+  };
 
   const handleDate = (date) => {
     const isoDate = date.toISOString();
@@ -94,9 +126,10 @@ const UpdateRestaurant = () => {
   const updateRestaurant = async (e) => {
     e.preventDefault();
 
-    const { name, rating, visitDate } = entry;
+    const { name, ratings, visitDate } = entry;
 
-    if (!name || !rating || !visitDate) {
+    const allRated = CATEGORIES.every(({ key }) => ratings[key] > 0);
+    if (!name || !allRated || !visitDate) {
       return;
     }
 
@@ -198,14 +231,25 @@ const UpdateRestaurant = () => {
                 dateFormat="MM / dd / yyyy"
               />
 
-              {/* Rating */}
-              <label htmlFor="rating">Rating</label>
-              <RateRangeEl
-                Icon={TiStarFullOutline}
-                num={5}
-                onClick={(e) => setEntry({ ...entry, rating: e })}
-                range={entry.rating}
-              />
+              {/* Category ratings (half-stars) + optional per-category note */}
+              {CATEGORIES.map(({ key, label }) => (
+                <div className="rating-category" key={key}>
+                  <label>{label}</label>
+                  <RateRangeEl
+                    half
+                    Icon={TiStarFullOutline}
+                    num={5}
+                    onClick={(value) => handleRating(key, value)}
+                    range={entry.ratings[key]}
+                  />
+                  <textarea
+                    rows={2}
+                    value={entry.notes[key]}
+                    onChange={(e) => handleNote(key, e.target.value)}
+                    placeholder={`Add a note about the ${label.toLowerCase()} (optional)`}
+                  ></textarea>
+                </div>
+              ))}
 
               {/* PriceRange */}
               <label htmlFor="price">Price</label>
@@ -255,6 +299,14 @@ const CardsContainer = styled.div`
 
   .react-datepicker-wrapper {
     display: block;
+  }
+
+  .rating-category {
+    margin-bottom: 16px;
+  }
+
+  .rating-category textarea {
+    margin-top: 6px;
   }
 
   #image {

@@ -13,7 +13,7 @@ import {
 } from "../components";
 
 // Import Icons
-import { TiStarFullOutline } from "react-icons/ti";
+import { FaStar, FaStarHalfAlt } from "react-icons/fa";
 import { BiDollar } from "react-icons/bi";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { FiEdit2 } from "react-icons/fi";
@@ -34,7 +34,15 @@ const Restaurant = () => {
   const date = new Date(restaurant.visitDate);
   const formattedDate = formatDate(date);
 
-  const rating = restaurant.rating;
+  const ratings = restaurant.ratings || {};
+  const notes = restaurant.notes || {};
+  const finalScore = restaurant.finalScore;
+  const categories = [
+    { key: "food", label: "Food" },
+    { key: "service", label: "Service" },
+    { key: "ambience", label: "Ambience" },
+    { key: "value", label: "Value" },
+  ];
   let price;
   restaurant.priceRange ? (price = restaurant.priceRange.length) : (price = 0);
 
@@ -77,15 +85,37 @@ const Restaurant = () => {
                   </div>
                 </div>
                 <p className="review">{restaurant.review}</p>
-                <div className="rating_price">
-                  <div className="rating">
-                    <p>Rating</p>
+
+                {finalScore != null && (
+                  <div className="final-score">
+                    <span className="score-number">{finalScore}</span>
                     <DisplayRangeEl
-                      Icon={TiStarFullOutline}
+                      Icon={FaStar}
+                      HalfIcon={FaStarHalfAlt}
                       numOfEl="5"
-                      highlightEl={rating}
+                      highlightEl={finalScore}
                     />
                   </div>
+                )}
+
+                <div className="categories">
+                  {categories.map(({ key, label }) => (
+                    <div className="category" key={key}>
+                      <div className="category-header">
+                        <p>{label}</p>
+                        <DisplayRangeEl
+                          Icon={FaStar}
+                          HalfIcon={FaStarHalfAlt}
+                          numOfEl="5"
+                          highlightEl={ratings[key] || 0}
+                        />
+                      </div>
+                      {notes[key] && <p className="note">{notes[key]}</p>}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rating_price">
                   <div className="price">
                     <p>Price</p>
                     <DisplayRangeEl
@@ -197,6 +227,41 @@ const Content = styled.div`
     margin-bottom: 30px;
   }
 
+  .final-score {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .final-score .score-number {
+    font-size: 32px;
+    font-family: var(--primary-font-medium);
+  }
+
+  .categories {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .category-header p {
+    width: 90px;
+  }
+
+  .note {
+    margin-top: 4px;
+    font-family: var(--primary-font-light);
+    color: var(--text-secondary-color);
+  }
+
   .rating_price {
     display: flex;
     align-items: center;
@@ -204,7 +269,6 @@ const Content = styled.div`
 
   .date,
   .cuisine,
-  .rating,
   .price {
     width: 50%;
   }

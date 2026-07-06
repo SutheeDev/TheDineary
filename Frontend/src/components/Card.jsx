@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { FaStar } from "react-icons/fa";
 import formatDate from "../utils/formatDate";
 
 const Card = ({ restaurant }) => {
@@ -19,7 +20,15 @@ const Card = ({ restaurant }) => {
         <img src={restaurant.image} alt={restaurant.name} />
       </div>
       <div className="card-content">
-        <h4>{restaurant.name}</h4>
+        <div className="card-title">
+          <h4>{restaurant.name}</h4>
+          {restaurant.finalScore != null && (
+            <span className="score">
+              <FaStar className="score-icon" />
+              {restaurant.finalScore}
+            </span>
+          )}
+        </div>
         <p>
           Visit Date : <span>{formattedDate}</span>
         </p>
@@ -63,8 +72,22 @@ const Wrapper = styled.div`
     padding: 10px 15px;
     font-family: var(--primary-font-medium);
   }
-  .card-content h4 {
+  .card-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 5px;
+  }
+  .card-title h4 {
+    margin-bottom: 0;
+  }
+  .score {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-icon {
+    color: var(--text-secondary-color);
   }
   .card-content span {
     font-family: var(--primary-font-light);

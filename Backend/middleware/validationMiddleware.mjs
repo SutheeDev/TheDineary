@@ -30,6 +30,19 @@ const loginValidation = [
   body("password").notEmpty().withMessage("Please provide a password"),
 ];
 
+// One category rating: required, 0.5 to 5, in half-star steps.
+const ratingCategory = (field, label) =>
+  body(`ratings.${field}`)
+    .notEmpty()
+    .withMessage(`${label} rating is required`)
+    .bail()
+    .isFloat({ min: 0.5, max: 5 })
+    .withMessage(`${label} rating must be between 0.5 and 5`)
+    .bail()
+    .custom((value) => (Number(value) * 2) % 1 === 0)
+    .withMessage(`${label} rating must be in half-star steps`)
+    .toFloat();
+
 const restaurantValidation = [
   body("name").trim().notEmpty().withMessage("Name is required"),
   body("visitDate")
@@ -38,10 +51,14 @@ const restaurantValidation = [
     .bail()
     .isISO8601()
     .withMessage("Visit date must be a valid date"),
-  body("rating")
-    .isInt({ min: 1, max: 5 })
-    .withMessage("Rating must be a whole number between 1 and 5")
-    .toInt(),
+  ratingCategory("food", "Food"),
+  ratingCategory("service", "Service"),
+  ratingCategory("ambience", "Ambience"),
+  ratingCategory("value", "Value"),
+  body("notes.food").optional().isString().trim(),
+  body("notes.service").optional().isString().trim(),
+  body("notes.ambience").optional().isString().trim(),
+  body("notes.value").optional().isString().trim(),
   body("priceRange")
     .optional()
     .isIn(["", "$", "$$", "$$$", "$$$$"])
