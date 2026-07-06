@@ -24,11 +24,38 @@ const createRestaurant = async (req, res, next) => {
   }
 };
 
+// Only these fields may be sorted on. Anything else falls back to visitDate,
+// so a bad or malicious ?sort value can never reach the query untouched.
+const SORT_FIELDS = {
+  visitDate: "visitDate",
+  finalScore: "finalScore",
+  name: "name",
+  priceRange: "priceRange",
+  createdAt: "createdAt",
+};
+
 const getRestaurants = async (req, res, next) => {
   try {
-    const restaurants = await Restaurant.find({
-      userId: req.userId,
-    }).sort({ visitDate: -1 });
+    const { search, cuisine, priceRange, sort, order } = req.query;
+
+    const query = { userId: req.userId };
+
+    if (search) {
+      // Escape regex specials so input like "(" cannot throw or match oddly.
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.name = { $regex: escaped, $options: "i" };
+    }
+    if (cuisine) {
+      query.cuisine = cuisine;
+    }
+    if (priceRange) {
+      query.priceRange = priceRange;
+    }
+
+    const field = SORT_FIELDS[sort] || "visitDate";
+    const direction = order === "asc" ? 1 : -1;
+
+    const restaurants = await Restaurant.find(query).sort({ [field]: direction });
 
     res.status(200).json(restaurants);
   } catch (err) {
