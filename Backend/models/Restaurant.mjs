@@ -39,6 +39,19 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       enum: ["", "$", "$$", "$$$", "$$$$"],
     },
+    category: {
+      type: String,
+      enum: [
+        "",
+        "Restaurant",
+        "Coffee Shop",
+        "Bakery / Pastry",
+        "Bar",
+        "Dessert",
+        "Street Food",
+        "Other",
+      ],
+    },
     image: {
       type: String,
       default:

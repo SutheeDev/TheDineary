@@ -36,7 +36,7 @@ const SORT_FIELDS = {
 
 const getRestaurants = async (req, res, next) => {
   try {
-    const { search, cuisine, priceRange, sort, order } = req.query;
+    const { search, cuisine, priceRange, category, sort, order } = req.query;
 
     const query = { userId: req.userId };
 
@@ -50,6 +50,9 @@ const getRestaurants = async (req, res, next) => {
     }
     if (priceRange) {
       query.priceRange = priceRange;
+    }
+    if (category) {
+      query.category = category;
     }
 
     const field = SORT_FIELDS[sort] || "visitDate";

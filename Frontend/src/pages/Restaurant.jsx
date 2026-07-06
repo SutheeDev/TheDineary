@@ -20,6 +20,7 @@ import { FiEdit2 } from "react-icons/fi";
 import { GoKebabHorizontal } from "react-icons/go";
 import { FiCalendar } from "react-icons/fi";
 import { FiCoffee } from "react-icons/fi";
+import { FiTag } from "react-icons/fi";
 
 const Restaurant = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -84,6 +85,12 @@ const Restaurant = () => {
                     <FiCoffee />
                     <p>{restaurant.cuisine}</p>
                   </div>
+                  {restaurant.category && (
+                    <div className="category">
+                      <FiTag />
+                      <p>{restaurant.category}</p>
+                    </div>
+                  )}
                 </div>
                 <p className="review">{restaurant.review}</p>
 
@@ -206,17 +213,20 @@ const Content = styled.div`
 
   .date_cuisine,
   .date,
-  .cuisine {
+  .cuisine,
+  .category {
     display: flex;
     align-items: center;
   }
 
   .date_cuisine {
     gap: 12px;
+    flex-wrap: wrap;
   }
 
   .date,
-  .cuisine {
+  .cuisine,
+  .category {
     gap: 8px;
     background-color: var(--bg-secondary-color);
     padding: 6px 12px;
@@ -224,12 +234,14 @@ const Content = styled.div`
   }
 
   .date p,
-  .cuisine p {
+  .cuisine p,
+  .category p {
     font-size: 15px;
   }
 
   .date svg,
-  .cuisine svg {
+  .cuisine svg,
+  .category svg {
     font-size: 16px;
   }
 

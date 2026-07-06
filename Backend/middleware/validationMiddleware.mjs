@@ -63,6 +63,19 @@ const restaurantValidation = [
     .optional()
     .isIn(["", "$", "$$", "$$$", "$$$$"])
     .withMessage("Invalid price range"),
+  body("category")
+    .optional()
+    .isIn([
+      "",
+      "Restaurant",
+      "Coffee Shop",
+      "Bakery / Pastry",
+      "Bar",
+      "Dessert",
+      "Street Food",
+      "Other",
+    ])
+    .withMessage("Invalid category"),
   body("location.lat")
     .optional()
     .isFloat({ min: -90, max: 90 })

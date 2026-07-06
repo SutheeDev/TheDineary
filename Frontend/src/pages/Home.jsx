@@ -10,6 +10,16 @@ import styled from "styled-components";
 
 const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
 
+const CATEGORY_OPTIONS = [
+  "Restaurant",
+  "Coffee Shop",
+  "Bakery / Pastry",
+  "Bar",
+  "Dessert",
+  "Street Food",
+  "Other",
+];
+
 const SORT_OPTIONS = [
   { value: "visitDate", label: "Visit date" },
   { value: "finalScore", label: "Final score" },
@@ -44,6 +54,7 @@ const Home = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [priceRange, setPriceRange] = useState("");
+  const [category, setCategory] = useState("");
   const [sortKey, setSortKey] = useState("visitDate");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -71,6 +82,7 @@ const Home = () => {
         if (debouncedSearch) params.search = debouncedSearch;
         if (cuisine) params.cuisine = cuisine;
         if (priceRange) params.priceRange = priceRange;
+        if (category) params.category = category;
 
         const { data } = await apiClient.get("/restaurants", { params });
         setList(data);
@@ -82,9 +94,11 @@ const Home = () => {
     };
 
     fetchList();
-  }, [debouncedSearch, cuisine, priceRange, sortKey, sortOrder]);
+  }, [debouncedSearch, cuisine, priceRange, category, sortKey, sortOrder]);
 
-  const hasFilters = Boolean(debouncedSearch || cuisine || priceRange);
+  const hasFilters = Boolean(
+    debouncedSearch || cuisine || priceRange || category
+  );
 
   return (
     <CardsContainer>
@@ -128,6 +142,19 @@ const Home = () => {
             {PRICE_OPTIONS.map((p) => (
               <option key={p} value={p}>
                 {p}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            aria-label="Filter by category"
+          >
+            <option value="">All categories</option>
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
           </select>
