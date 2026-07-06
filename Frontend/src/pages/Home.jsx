@@ -8,6 +8,10 @@ import { FiSearch } from "react-icons/fi";
 
 import styled from "styled-components";
 
+// Sentinel a filter sends to fetch entries that have no value for that field, so
+// blank entries are findable. The backend maps it to "missing or empty".
+const NO_VALUE = "__none__";
+
 const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
 
 const CATEGORY_OPTIONS = [
@@ -131,6 +135,7 @@ const Home = () => {
                 {c}
               </option>
             ))}
+            <option value={NO_VALUE}>Unspecified</option>
           </select>
 
           <select
@@ -144,6 +149,7 @@ const Home = () => {
                 {p}
               </option>
             ))}
+            <option value={NO_VALUE}>Unspecified</option>
           </select>
 
           <select
@@ -157,6 +163,7 @@ const Home = () => {
                 {c}
               </option>
             ))}
+            <option value={NO_VALUE}>Unspecified</option>
           </select>
 
           <select

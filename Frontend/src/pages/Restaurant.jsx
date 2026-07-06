@@ -47,6 +47,14 @@ const Restaurant = () => {
   let price;
   restaurant.priceRange ? (price = restaurant.priceRange.length) : (price = 0);
 
+  // Gentle nudge: list the optional fields this entry is still missing so they
+  // can be filled in later. Photo is left out because every entry gets a
+  // placeholder image by default, so "missing" cannot be told apart reliably.
+  const missingFields = [];
+  if (!restaurant.cuisine) missingFields.push("cuisine");
+  if (!restaurant.category) missingFields.push("category");
+  if (!restaurant.priceRange) missingFields.push("price");
+
   return (
     <main>
       {isAlert && <Alert />}
@@ -133,6 +141,26 @@ const Restaurant = () => {
                     />
                   </div>
                 </div>
+
+                {missingFields.length > 0 && (
+                  <div className="complete-entry">
+                    <p className="complete-entry-title">Complete this entry</p>
+                    <div className="complete-entry-chips">
+                      {missingFields.map((field) => (
+                        <button
+                          key={field}
+                          type="button"
+                          className="complete-chip"
+                          onClick={() =>
+                            navigate(`/restaurant/update/${id}`)
+                          }
+                        >
+                          Add {field}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               </div>
             </div>
@@ -299,6 +327,41 @@ const Content = styled.div`
 
   .menu-btn-container {
     position: relative;
+  }
+
+  .complete-entry {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
+  }
+
+  .complete-entry-title {
+    font-size: 14px;
+    color: var(--text-third-color);
+    margin-bottom: 12px;
+  }
+
+  .complete-entry-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .complete-chip {
+    border: 1px dashed var(--text-third-color);
+    background-color: transparent;
+    color: var(--text-third-color);
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+  }
+
+  .complete-chip:hover {
+    color: var(--orange);
+    border-color: var(--orange);
   }
 
   @media (max-width: 1024px) {

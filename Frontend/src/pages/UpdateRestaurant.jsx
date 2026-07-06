@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useGlobalContext } from "../App";
 import { useState } from "react";
 import apiClient from "../utils/apiClient";
+import { CUISINES } from "../utils/constants";
 import axios from "axios";
 
 // Import Icons
@@ -219,7 +220,7 @@ const UpdateRestaurant = () => {
                 ></textarea>
               </div>
 
-              {/* Cuisine */}
+              {/* Cuisine (suggest-as-you-type; any typed value is allowed) */}
               <FormRow
                 type={"text"}
                 name={"cuisine"}
@@ -228,7 +229,13 @@ const UpdateRestaurant = () => {
                   setEntry({ ...entry, cuisine: e.target.value })
                 }
                 placeholder="Add a Cuisine"
+                list="cuisine-options"
               />
+              <datalist id="cuisine-options">
+                {CUISINES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
 
               {/* Category */}
               <div className="category-field">

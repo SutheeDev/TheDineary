@@ -8,12 +8,31 @@ const computeFinalScore = (ratings) => {
   return Math.round(((food + service + ambience + value) / 4) * 10) / 10;
 };
 
+// Store cuisines in one consistent shape so "thai", " Thai " and Google's "Thai"
+// all become the same value and stop splitting into separate filter buckets:
+// trim, collapse inner runs of spaces, then title-case each word (matching the
+// format the Google Places auto-fill produces on the frontend).
+const normalizeCuisine = (cuisine) => {
+  if (typeof cuisine !== "string") return cuisine;
+  return cuisine
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+// A filter value sent by the frontend meaning "entries with no value for this
+// field" -- matches both an empty string and a missing/null field.
+const NO_VALUE = "__none__";
+
 const createRestaurant = async (req, res, next) => {
   try {
     req.body.userId = req.userId;
 
     if (req.body.ratings) {
       req.body.finalScore = computeFinalScore(req.body.ratings);
+    }
+    if (req.body.cuisine !== undefined) {
+      req.body.cuisine = normalizeCuisine(req.body.cuisine);
     }
 
     const newRestaurant = await Restaurant.create(req.body);
@@ -45,14 +64,18 @@ const getRestaurants = async (req, res, next) => {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.name = { $regex: escaped, $options: "i" };
     }
+    // For each filter, the NO_VALUE sentinel means "find entries missing this
+    // field" ($in [null, ""] catches both an empty string and an absent field);
+    // any other value is an exact match as before.
     if (cuisine) {
-      query.cuisine = cuisine;
+      query.cuisine = cuisine === NO_VALUE ? { $in: [null, ""] } : cuisine;
     }
     if (priceRange) {
-      query.priceRange = priceRange;
+      query.priceRange =
+        priceRange === NO_VALUE ? { $in: [null, ""] } : priceRange;
     }
     if (category) {
-      query.category = category;
+      query.category = category === NO_VALUE ? { $in: [null, ""] } : category;
     }
 
     const field = SORT_FIELDS[sort] || "visitDate";
@@ -87,6 +110,9 @@ const updateRestaurant = async (req, res, next) => {
   try {
     if (req.body.ratings) {
       req.body.finalScore = computeFinalScore(req.body.ratings);
+    }
+    if (req.body.cuisine !== undefined) {
+      req.body.cuisine = normalizeCuisine(req.body.cuisine);
     }
 
     const updatedRestaurant = await Restaurant.findOneAndUpdate(

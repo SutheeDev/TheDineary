@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RateRangeEl, FormRow, Loading, PlaceSearch } from "../components";
 import apiClient from "../utils/apiClient";
+import { CUISINES } from "../utils/constants";
 import { useGlobalContext } from "../App";
 
 // Import Icons
@@ -237,7 +238,7 @@ const CreateRestaurant = () => {
                 ></textarea>
               </div>
 
-              {/* Cuisine */}
+              {/* Cuisine (suggest-as-you-type; any typed value is allowed) */}
               <FormRow
                 type={"text"}
                 name={"cuisine"}
@@ -246,7 +247,13 @@ const CreateRestaurant = () => {
                   setEntry({ ...entry, cuisine: e.target.value })
                 }
                 placeholder="Cuisine"
+                list="cuisine-options"
               />
+              <datalist id="cuisine-options">
+                {CUISINES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
 
               {/* Category */}
               <div className="category-field">

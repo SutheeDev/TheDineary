@@ -7,6 +7,7 @@ const FormRow = ({
   handleChange,
   labelText,
   placeholder,
+  list,
 }) => {
   return (
     <Wrapper>
@@ -18,6 +19,7 @@ const FormRow = ({
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
+        list={list}
       />
     </Wrapper>
   );
