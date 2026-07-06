@@ -55,20 +55,21 @@ const Restaurant = () => {
           <Loading />
         ) : (
           <div className="page-wrapper">
-            <div className="icons">
-              <IoIosCloseCircleOutline
-                className="close-btn"
-                onClick={() => navigate("/")}
-              />
-              <div
-                className="menu-btn-container"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              >
-                <GoKebabHorizontal className="menu-btn" />
-                {isDropdownOpen && <DropdownMenu />}
+            <div className="detail-card">
+              <div className="icons">
+                <IoIosCloseCircleOutline
+                  className="close-btn"
+                  onClick={() => navigate("/")}
+                />
+                <div
+                  className="menu-btn-container"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  <GoKebabHorizontal className="menu-btn" />
+                  {isDropdownOpen && <DropdownMenu />}
+                </div>
               </div>
-            </div>
-            <div className="restaurant-content">
+              <div className="restaurant-content">
               <div className="restaurant-img">
                 <img src={restaurant.image} alt={restaurant.name} />
               </div>
@@ -126,6 +127,7 @@ const Restaurant = () => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
         )}
@@ -140,11 +142,18 @@ const Content = styled.div`
   background-color: var(--bg-third-color);
   padding: var(--container-padding);
 
+  .detail-card {
+    background-color: var(--bg-color);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: 40px;
+  }
+
   .icons {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--container-padding);
+    margin-bottom: 24px;
   }
 
   .restaurant-content {
@@ -202,19 +211,26 @@ const Content = styled.div`
     align-items: center;
   }
 
+  .date_cuisine {
+    gap: 12px;
+  }
+
   .date,
   .cuisine {
-    gap: 12px;
+    gap: 8px;
+    background-color: var(--bg-secondary-color);
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
   }
 
   .date p,
   .cuisine p {
-    font-size: 20px;
+    font-size: 15px;
   }
 
   .date svg,
   .cuisine svg {
-    font-size: 24px;
+    font-size: 16px;
   }
 
   .review {
@@ -244,6 +260,8 @@ const Content = styled.div`
     flex-direction: column;
     gap: 16px;
     margin-bottom: 30px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
   }
 
   .category-header {
@@ -259,7 +277,7 @@ const Content = styled.div`
   .note {
     margin-top: 4px;
     font-family: var(--primary-font-light);
-    color: var(--text-secondary-color);
+    color: var(--gray-600);
   }
 
   .rating_price {
@@ -267,17 +285,15 @@ const Content = styled.div`
     align-items: center;
   }
 
-  .date,
-  .cuisine,
-  .price {
-    width: 50%;
-  }
-
   .menu-btn-container {
     position: relative;
   }
 
   @media (max-width: 1024px) {
+    .detail-card {
+      padding: 24px;
+    }
+
     .restaurant-content {
       flex-direction: column;
       gap: 32px;
