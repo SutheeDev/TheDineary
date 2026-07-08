@@ -12,12 +12,14 @@ import DisplayRangeEl from "./DisplayRangeEl";
 import DropdownMenu from "./DropdownMenu";
 import ProfileDropdown from "./ProfileDropdown";
 import PlaceSearch from "./PlaceSearch";
+import Toast from "./Toast";
 
 export {
   Card,
   Loading,
   Logo,
   Alert,
+  Toast,
   NavigationIcon,
   UserIcon,
   Navbar,

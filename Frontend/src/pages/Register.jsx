@@ -10,12 +10,11 @@ import { useGlobalContext } from "../App";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Register = () => {
-  const { setUser, setRestaurants } = useGlobalContext();
+  const { setUser, setRestaurants, showToast } = useGlobalContext();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,7 +37,6 @@ const Register = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    setError("");
     setIsLoading(true);
     try {
       const { data: userData } = await apiClient.post("/auth/google", {
@@ -49,7 +47,7 @@ const Register = () => {
       setRestaurants(restaurantsData);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.msg || "Google sign-in failed");
+      showToast(err.response?.data?.msg || "Google sign-in failed", "error");
     } finally {
       setIsLoading(false);
     }
@@ -57,11 +55,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     const errors = validate();
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
+      showToast("Please complete the required fields", "error");
       return;
     }
 
@@ -73,7 +71,7 @@ const Register = () => {
       setRestaurants([]);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.msg || "Something went wrong");
+      showToast(err.response?.data?.msg || "Something went wrong", "error");
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +141,6 @@ const Register = () => {
               )}
             </div>
 
-            {error && <p className="error-msg">{error}</p>}
             <button
               className="btn orange-btn submit-btn"
               type="submit"
@@ -160,7 +157,7 @@ const Register = () => {
           <div className="google-btn">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={() => setError("Google sign-in failed")}
+              onError={() => showToast("Google sign-in failed", "error")}
             />
           </div>
 
@@ -283,12 +280,6 @@ const Wrapper = styled.div`
     width: 100%;
     margin-top: 8px;
     padding: 12px;
-  }
-
-  .error-msg {
-    color: var(--orange);
-    margin-bottom: 12px;
-    font-size: 14px;
   }
 
   .divider {

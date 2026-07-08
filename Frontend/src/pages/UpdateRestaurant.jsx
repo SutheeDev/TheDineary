@@ -31,7 +31,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 const UpdateRestaurant = () => {
-  const { restaurants, setRestaurants, setIsLoading, isLoading } =
+  const { restaurants, setRestaurants, setIsLoading, isLoading, showToast } =
     useGlobalContext();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -68,7 +68,6 @@ const UpdateRestaurant = () => {
 
   const [entry, setEntry] = useState(initialState);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState("");
 
   const handleRating = (key, value) => {
     setEntry((prev) => ({
@@ -151,11 +150,11 @@ const UpdateRestaurant = () => {
 
   const updateRestaurant = async (e) => {
     e.preventDefault();
-    setError("");
 
     const errors = validate();
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
+      showToast("Please complete the required fields", "error");
       return;
     }
 
@@ -170,9 +169,13 @@ const UpdateRestaurant = () => {
           .sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate))
       );
 
+      showToast("Changes saved", "success");
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.msg || "Something went wrong. Please try again.");
+      showToast(
+        err.response?.data?.msg || "Something went wrong. Please try again.",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -333,7 +336,6 @@ const UpdateRestaurant = () => {
                 range={entry.priceRange.length}
               />
 
-              {error && <p className="error-msg">{error}</p>}
               <div className="btn-container">
                 <button className="btn save-btn orange-btn" type="submit">
                   Save Update
@@ -426,12 +428,6 @@ const CardsContainer = styled.div`
     font-size: 13px;
     margin-top: 6px;
     margin-bottom: 4px;
-  }
-
-  .error-msg {
-    color: var(--orange);
-    margin-bottom: 12px;
-    font-size: 14px;
   }
 
   .required-star {

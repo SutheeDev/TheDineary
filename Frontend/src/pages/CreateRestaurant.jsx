@@ -53,10 +53,10 @@ const CreateRestaurant = () => {
     ...(state?.prefill || {}),
   }));
 
-  const { setRestaurants, setIsLoading, isLoading } = useGlobalContext();
+  const { setRestaurants, setIsLoading, isLoading, showToast } =
+    useGlobalContext();
 
   const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
@@ -158,11 +158,11 @@ const CreateRestaurant = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     const errors = validate();
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
+      showToast("Please complete the required fields", "error");
       return;
     }
 
@@ -176,11 +176,15 @@ const CreateRestaurant = () => {
           (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
         )
       );
+      showToast("Restaurant saved", "success");
       // Return to the map when the add started there so the new pin shows up;
       // otherwise go to the Home list as before.
       navigate(state?.prefill ? "/map" : "/");
     } catch (err) {
-      setError(err.response?.data?.msg || "Something went wrong. Please try again.");
+      showToast(
+        err.response?.data?.msg || "Something went wrong. Please try again.",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -352,7 +356,6 @@ const CreateRestaurant = () => {
                 range={entry.priceRange.length}
               />
 
-              {error && <p className="error-msg">{error}</p>}
               <div className="btn-container">
                 <button className="btn save-btn orange-btn" type="submit">
                   Save Entry
@@ -445,12 +448,6 @@ const CardsContainer = styled.div`
     font-size: 13px;
     margin-top: 6px;
     margin-bottom: 4px;
-  }
-
-  .error-msg {
-    color: var(--orange);
-    margin-bottom: 12px;
-    font-size: 14px;
   }
 
   .required-star {

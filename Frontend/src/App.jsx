@@ -13,6 +13,7 @@ import {
   Register,
   RestaurantsMap,
 } from "./pages/index";
+import { Toast } from "./components";
 import apiClient from "./utils/apiClient";
 
 const globalContext = createContext();
@@ -23,6 +24,17 @@ const App = () => {
   const [isAlert, setIsAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const showToast = (message, type = "info") => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 4000);
+  };
 
   const logout = async () => {
     try {
@@ -66,8 +78,12 @@ const App = () => {
         setIsLoading,
         logout,
         isAuthChecked,
+        toasts,
+        showToast,
+        removeToast,
       }}
     >
+      <Toast />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

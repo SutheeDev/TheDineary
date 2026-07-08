@@ -7,7 +7,8 @@ import apiClient from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 
 const UpdateUser = () => {
-  const { user, setUser, isLoading, setIsLoading } = useGlobalContext();
+  const { user, setUser, isLoading, setIsLoading, showToast } =
+    useGlobalContext();
 
   const navigate = useNavigate();
 
@@ -76,9 +77,13 @@ const UpdateUser = () => {
     try {
       const response = await apiClient.patch("/user", userState);
       setUser(response.data);
+      showToast("Profile updated", "success");
       navigate("/");
     } catch (error) {
-      console.log(error);
+      showToast(
+        error.response?.data?.msg || "Couldn't save changes",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
