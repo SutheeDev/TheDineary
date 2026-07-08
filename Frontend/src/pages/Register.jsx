@@ -26,11 +26,11 @@ const Register = () => {
 
   const validate = () => {
     const errors = {};
-    if (!form.name) errors.name = "Name is required";
-    if (!form.email) errors.email = "Email is required";
+    if (!form.name) errors.name = "(Required)";
+    if (!form.email) errors.email = "(Required)";
     else if (!emailPattern.test(form.email))
       errors.email = "Enter a valid email";
-    if (!form.password) errors.password = "Password is required";
+    if (!form.password) errors.password = "(Required)";
     else if (form.password.length < 6)
       errors.password = "Password must be at least 6 characters";
     return errors;
@@ -100,10 +100,9 @@ const Register = () => {
               value={form.name}
               handleChange={handleChange}
               placeholder="Name"
+              required
+              error={fieldErrors.name}
             />
-            {fieldErrors.name && (
-              <p className="field-error">{fieldErrors.name}</p>
-            )}
 
             <FormRow
               type="email"
@@ -111,13 +110,20 @@ const Register = () => {
               value={form.email}
               handleChange={handleChange}
               placeholder="Email"
+              required
+              error={fieldErrors.email}
             />
-            {fieldErrors.email && (
-              <p className="field-error">{fieldErrors.email}</p>
-            )}
 
             <div className="password-field">
-              <label htmlFor="password">Password</label>
+              <div className="field-label-row">
+                <label htmlFor="password">
+                  Password
+                  <span className="required-star"> *</span>
+                </label>
+                {fieldErrors.password && (
+                  <span className="field-error">{fieldErrors.password}</span>
+                )}
+              </div>
               <div className="password-input">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -136,9 +142,6 @@ const Register = () => {
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
-              {fieldErrors.password && (
-                <p className="field-error">{fieldErrors.password}</p>
-              )}
             </div>
 
             <button
@@ -242,6 +245,16 @@ const Wrapper = styled.div`
     margin-bottom: 16px;
   }
 
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .required-star {
+    color: var(--orange);
+  }
+
   .password-input {
     position: relative;
   }
@@ -272,8 +285,6 @@ const Wrapper = styled.div`
   .field-error {
     color: var(--orange);
     font-size: 13px;
-    margin-top: 6px;
-    margin-bottom: 4px;
   }
 
   .submit-btn {
