@@ -55,6 +55,9 @@ const CreateRestaurant = () => {
 
   const { setRestaurants, setIsLoading, isLoading } = useGlobalContext();
 
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   // Auto-fill from a picked place, keeping any value the user already typed
@@ -73,6 +76,7 @@ const CreateRestaurant = () => {
   const handleDate = (date) => {
     const isoDate = date.toISOString();
     setEntry({ ...entry, visitDate: isoDate });
+    setFieldErrors((prev) => ({ ...prev, visitDate: "" }));
   };
 
   const handlePriceRange = (priceRange) => {
@@ -132,6 +136,7 @@ const CreateRestaurant = () => {
       ...prev,
       ratings: { ...prev.ratings, [key]: value },
     }));
+    setFieldErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
   const handleNote = (key, value) => {
@@ -141,13 +146,23 @@ const CreateRestaurant = () => {
     }));
   };
 
+  const validate = () => {
+    const errors = {};
+    if (!entry.name) errors.name = "(Required)";
+    if (!entry.visitDate) errors.visitDate = "(Required)";
+    CATEGORIES.forEach(({ key }) => {
+      if (!(entry.ratings[key] > 0)) errors[key] = "(Required)";
+    });
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const { name, ratings, visitDate } = entry;
-
-    const allRated = CATEGORIES.every(({ key }) => ratings[key] > 0);
-    if (!name || !allRated || !visitDate) {
+    const errors = validate();
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
       return;
     }
 
@@ -164,8 +179,8 @@ const CreateRestaurant = () => {
       // Return to the map when the add started there so the new pin shows up;
       // otherwise go to the Home list as before.
       navigate(state?.prefill ? "/map" : "/");
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      setError(err.response?.data?.msg || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -178,7 +193,7 @@ const CreateRestaurant = () => {
         {isLoading ? (
           <Loading />
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             {/* Image Upload */}
             <div className="file-upload-container">
               <label htmlFor="image" className="image-upload-btn">
@@ -218,10 +233,13 @@ const CreateRestaurant = () => {
                 type={"text"}
                 name={"title"}
                 value={entry.name}
-                handleChange={(e) =>
-                  setEntry({ ...entry, name: e.target.value })
-                }
+                handleChange={(e) => {
+                  setEntry({ ...entry, name: e.target.value });
+                  setFieldErrors((prev) => ({ ...prev, name: "" }));
+                }}
                 placeholder="Title"
+                required
+                error={fieldErrors.name}
               />
 
               <div>
@@ -277,20 +295,38 @@ const CreateRestaurant = () => {
 
               {/* visitDate */}
               {/* https://reactdatepicker.com/ */}
-              <label htmlFor="date">Date Visit</label>
-              <DatePicker
-                selected={entry.visitDate}
-                onChange={(date) => handleDate(date)}
-                closeOnScroll={true}
-                maxDate={new Date()}
-                placeholderText="Click to select a date"
-                dateFormat="MM / dd / yyyy"
-              />
+              <div className="date-field">
+                <div className="field-label-row">
+                  <label htmlFor="date">
+                    Date Visit
+                    <span className="required-star"> *</span>
+                  </label>
+                  {fieldErrors.visitDate && (
+                    <span className="field-error">{fieldErrors.visitDate}</span>
+                  )}
+                </div>
+                <DatePicker
+                  selected={entry.visitDate}
+                  onChange={(date) => handleDate(date)}
+                  closeOnScroll={true}
+                  maxDate={new Date()}
+                  placeholderText="Click to select a date"
+                  dateFormat="MM / dd / yyyy"
+                />
+              </div>
 
               {/* Category ratings (half-stars) + optional per-category note */}
               {CATEGORIES.map(({ key, label }) => (
                 <div className="rating-category" key={key}>
-                  <label>{label}</label>
+                  <div className="field-label-row">
+                    <label>
+                      {label}
+                      <span className="required-star"> *</span>
+                    </label>
+                    {fieldErrors[key] && (
+                      <span className="field-error">{fieldErrors[key]}</span>
+                    )}
+                  </div>
                   <RateRangeEl
                     half
                     Icon={TiStarFullOutline}
@@ -316,6 +352,7 @@ const CreateRestaurant = () => {
                 range={entry.priceRange.length}
               />
 
+              {error && <p className="error-msg">{error}</p>}
               <div className="btn-container">
                 <button className="btn save-btn orange-btn" type="submit">
                   Save Entry
@@ -361,6 +398,10 @@ const CardsContainer = styled.div`
     margin-bottom: 16px;
   }
 
+  .date-field {
+    margin-bottom: 16px;
+  }
+
   .category-field select {
     display: block;
     width: 100%;
@@ -387,6 +428,33 @@ const CardsContainer = styled.div`
 
   .rating-category textarea {
     margin-top: 6px;
+  }
+
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .field-label-row .field-error {
+    margin: 0;
+  }
+
+  .field-error {
+    color: var(--orange);
+    font-size: 13px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+
+  .error-msg {
+    color: var(--orange);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .required-star {
+    color: var(--orange);
   }
 
   .place-search {

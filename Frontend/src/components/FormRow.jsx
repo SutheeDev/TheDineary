@@ -8,10 +8,18 @@ const FormRow = ({
   labelText,
   placeholder,
   list,
+  required,
+  error,
 }) => {
   return (
     <Wrapper>
-      <label htmlFor={name}>{labelText || name}</label>
+      <div className="field-label-row">
+        <label htmlFor={name}>
+          {labelText || name}
+          {required && <span className="required-star"> *</span>}
+        </label>
+        {error && <span className="field-error">{error}</span>}
+      </div>
       <input
         type={type}
         name={name}
@@ -31,6 +39,21 @@ const Wrapper = styled.div`
 
   label {
     text-transform: capitalize;
+  }
+
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .field-error {
+    color: var(--orange);
+    font-size: 13px;
+  }
+
+  .required-star {
+    color: var(--orange);
   }
 
   input {

@@ -67,12 +67,15 @@ const UpdateRestaurant = () => {
   };
 
   const [entry, setEntry] = useState(initialState);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [error, setError] = useState("");
 
   const handleRating = (key, value) => {
     setEntry((prev) => ({
       ...prev,
       ratings: { ...prev.ratings, [key]: value },
     }));
+    setFieldErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
   const handleNote = (key, value) => {
@@ -85,6 +88,7 @@ const UpdateRestaurant = () => {
   const handleDate = (date) => {
     const isoDate = date.toISOString();
     setEntry({ ...entry, visitDate: isoDate });
+    setFieldErrors((prev) => ({ ...prev, visitDate: "" }));
   };
 
   const handlePriceRange = (priceRange) => {
@@ -135,13 +139,23 @@ const UpdateRestaurant = () => {
     }
   };
 
+  const validate = () => {
+    const errors = {};
+    if (!entry.name) errors.name = "(Required)";
+    if (!entry.visitDate) errors.visitDate = "(Required)";
+    CATEGORIES.forEach(({ key }) => {
+      if (!(entry.ratings[key] > 0)) errors[key] = "(Required)";
+    });
+    return errors;
+  };
+
   const updateRestaurant = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const { name, ratings, visitDate } = entry;
-
-    const allRated = CATEGORIES.every(({ key }) => ratings[key] > 0);
-    if (!name || !allRated || !visitDate) {
+    const errors = validate();
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
       return;
     }
 
@@ -157,8 +171,8 @@ const UpdateRestaurant = () => {
       );
 
       navigate("/");
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      setError(err.response?.data?.msg || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +185,7 @@ const UpdateRestaurant = () => {
         {isLoading ? (
           <Loading />
         ) : (
-          <form onSubmit={updateRestaurant}>
+          <form onSubmit={updateRestaurant} noValidate>
             {/* Image Upload */}
             <FileUploadContainer
               className="file-upload-container"
@@ -200,10 +214,13 @@ const UpdateRestaurant = () => {
                 type={"text"}
                 name={"title"}
                 value={entry.name}
-                handleChange={(e) =>
-                  setEntry({ ...entry, name: e.target.value })
-                }
+                handleChange={(e) => {
+                  setEntry({ ...entry, name: e.target.value });
+                  setFieldErrors((prev) => ({ ...prev, name: "" }));
+                }}
                 placeholder="Title"
+                required
+                error={fieldErrors.name}
               />
 
               <div>
@@ -259,20 +276,38 @@ const UpdateRestaurant = () => {
 
               {/* visitDate */}
               {/* https://reactdatepicker.com/ */}
-              <label htmlFor="date">Date Visit</label>
-              <DatePicker
-                selected={entry.visitDate}
-                onChange={(date) => handleDate(date)}
-                closeOnScroll={true}
-                maxDate={new Date()}
-                placeholderText="Click to select a date"
-                dateFormat="MM / dd / yyyy"
-              />
+              <div className="date-field">
+                <div className="field-label-row">
+                  <label htmlFor="date">
+                    Date Visit
+                    <span className="required-star"> *</span>
+                  </label>
+                  {fieldErrors.visitDate && (
+                    <span className="field-error">{fieldErrors.visitDate}</span>
+                  )}
+                </div>
+                <DatePicker
+                  selected={entry.visitDate}
+                  onChange={(date) => handleDate(date)}
+                  closeOnScroll={true}
+                  maxDate={new Date()}
+                  placeholderText="Click to select a date"
+                  dateFormat="MM / dd / yyyy"
+                />
+              </div>
 
               {/* Category ratings (half-stars) + optional per-category note */}
               {CATEGORIES.map(({ key, label }) => (
                 <div className="rating-category" key={key}>
-                  <label>{label}</label>
+                  <div className="field-label-row">
+                    <label>
+                      {label}
+                      <span className="required-star"> *</span>
+                    </label>
+                    {fieldErrors[key] && (
+                      <span className="field-error">{fieldErrors[key]}</span>
+                    )}
+                  </div>
                   <RateRangeEl
                     half
                     Icon={TiStarFullOutline}
@@ -298,6 +333,7 @@ const UpdateRestaurant = () => {
                 range={entry.priceRange.length}
               />
 
+              {error && <p className="error-msg">{error}</p>}
               <div className="btn-container">
                 <button className="btn save-btn orange-btn" type="submit">
                   Save Update
@@ -343,6 +379,10 @@ const CardsContainer = styled.div`
     margin-bottom: 16px;
   }
 
+  .date-field {
+    margin-bottom: 16px;
+  }
+
   .category-field select {
     display: block;
     width: 100%;
@@ -369,6 +409,33 @@ const CardsContainer = styled.div`
 
   .rating-category textarea {
     margin-top: 6px;
+  }
+
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .field-label-row .field-error {
+    margin: 0;
+  }
+
+  .field-error {
+    color: var(--orange);
+    font-size: 13px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+
+  .error-msg {
+    color: var(--orange);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .required-star {
+    color: var(--orange);
   }
 
   #image {
