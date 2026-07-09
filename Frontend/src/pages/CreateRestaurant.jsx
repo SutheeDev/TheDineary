@@ -351,7 +351,7 @@ const CreateRestaurant = () => {
                   Save Entry
                 </button>
                 <button
-                  to="/"
+                  type="button"
                   className="btn cancel-btn"
                   onClick={() => navigate("/")}
                 >
