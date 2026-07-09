@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { RateRangeEl, FormRow, Loading } from "../components";
+import { RateRangeEl, FormRow, Loading, SelectDropdown } from "../components";
 import DatePicker from "react-datepicker";
 import { useParams, useNavigate } from "react-router-dom";
 import { useGlobalContext } from "../App";
@@ -241,41 +241,25 @@ const UpdateRestaurant = () => {
               </div>
 
               {/* Cuisine (suggest-as-you-type; any typed value is allowed) */}
-              <FormRow
-                type={"text"}
-                name={"cuisine"}
+              <SelectDropdown
+                label="Cuisine"
+                name="cuisine"
                 value={entry.cuisine}
-                handleChange={(e) =>
-                  setEntry({ ...entry, cuisine: e.target.value })
-                }
-                placeholder="Add a Cuisine"
-                list="cuisine-options"
+                onChange={(next) => setEntry({ ...entry, cuisine: next })}
+                options={CUISINES}
+                placeholder="Select a cuisine"
+                editable
               />
-              <datalist id="cuisine-options">
-                {CUISINES.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
 
-              {/* Category */}
-              <div className="category-field">
-                <label htmlFor="category">Category</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={entry.category}
-                  onChange={(e) =>
-                    setEntry({ ...entry, category: e.target.value })
-                  }
-                >
-                  <option value="">Select a category (optional)</option>
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Category (pick from the fixed list; optional) */}
+              <SelectDropdown
+                label="Category"
+                name="category"
+                value={entry.category}
+                onChange={(next) => setEntry({ ...entry, category: next })}
+                options={CATEGORY_OPTIONS}
+                placeholder="Select a category"
+              />
 
               {/* visitDate */}
               {/* https://reactdatepicker.com/ */}
@@ -294,7 +278,7 @@ const UpdateRestaurant = () => {
                   onChange={(date) => handleDate(date)}
                   closeOnScroll={true}
                   maxDate={new Date()}
-                  placeholderText="Click to select a date"
+                  placeholderText="Select a date"
                   dateFormat="MM / dd / yyyy"
                 />
               </div>
@@ -377,32 +361,8 @@ const CardsContainer = styled.div`
     display: block;
   }
 
-  .category-field {
-    margin-bottom: 16px;
-  }
-
   .date-field {
     margin-bottom: 16px;
-  }
-
-  .category-field select {
-    display: block;
-    width: 100%;
-    height: 42px;
-    box-sizing: border-box;
-    margin-top: 4px;
-    outline: none;
-    border: none;
-    padding: 0 32px 0 12px;
-    border-radius: var(--form-radius);
-    background-color: var(--bg-secondary-color);
-    cursor: pointer;
-    font: inherit;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
   }
 
   .rating-category {

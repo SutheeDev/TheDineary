@@ -12,6 +12,7 @@ import DisplayRangeEl from "./DisplayRangeEl";
 import DropdownMenu from "./DropdownMenu";
 import ProfileDropdown from "./ProfileDropdown";
 import PlaceSearch from "./PlaceSearch";
+import SelectDropdown from "./SelectDropdown";
 import Toast from "./Toast";
 
 export {
@@ -30,4 +31,5 @@ export {
   DropdownMenu,
   ProfileDropdown,
   PlaceSearch,
+  SelectDropdown,
 };
