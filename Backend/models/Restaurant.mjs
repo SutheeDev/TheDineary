@@ -27,6 +27,12 @@ const restaurantSchema = new mongoose.Schema(
       ambience: { type: String },
       value: { type: String },
     },
+    dishes: [
+      {
+        name: { type: String, trim: true, required: true },
+        note: { type: String, trim: true },
+      },
+    ],
     finalScore: {
       type: Number,
       min: 0.5,

@@ -58,6 +58,10 @@ const UpdateRestaurant = () => {
       ambience: restaurant.notes?.ambience || "",
       value: restaurant.notes?.value || "",
     },
+    dishes: (restaurant.dishes || []).map((dish) => ({
+      name: dish.name || "",
+      note: dish.note || "",
+    })),
     review: review || "",
     priceRange: priceRange || 0,
     category: restaurant.category || "",
@@ -81,6 +85,29 @@ const UpdateRestaurant = () => {
     setEntry((prev) => ({
       ...prev,
       notes: { ...prev.notes, [key]: value },
+    }));
+  };
+
+  const addDish = () => {
+    setEntry((prev) => ({
+      ...prev,
+      dishes: [...prev.dishes, { name: "", note: "" }],
+    }));
+  };
+
+  const handleDish = (index, field, value) => {
+    setEntry((prev) => ({
+      ...prev,
+      dishes: prev.dishes.map((dish, i) =>
+        i === index ? { ...dish, [field]: value } : dish
+      ),
+    }));
+  };
+
+  const removeDish = (index) => {
+    setEntry((prev) => ({
+      ...prev,
+      dishes: prev.dishes.filter((_, i) => i !== index),
     }));
   };
 
@@ -160,8 +187,14 @@ const UpdateRestaurant = () => {
 
     setIsLoading(true);
 
+    // Drop blank dish rows so empty entries never reach the database.
+    const payload = {
+      ...entry,
+      dishes: entry.dishes.filter((dish) => dish.name.trim()),
+    };
+
     try {
-      const response = await apiClient.patch(`/restaurants/${id}`, entry);
+      const response = await apiClient.patch(`/restaurants/${id}`, payload);
       const updatedRestaurant = response.data;
       setRestaurants(
         restaurants
@@ -311,6 +344,41 @@ const UpdateRestaurant = () => {
                 </div>
               ))}
 
+              {/* Dishes (optional list of what was eaten) */}
+              <div className="dishes">
+                <label>Dishes</label>
+                {entry.dishes.map((dish, index) => (
+                  <div className="dish-row" key={index}>
+                    <input
+                      type="text"
+                      value={dish.name}
+                      onChange={(e) => handleDish(index, "name", e.target.value)}
+                      placeholder="Dish name"
+                    />
+                    <input
+                      type="text"
+                      value={dish.note}
+                      onChange={(e) => handleDish(index, "note", e.target.value)}
+                      placeholder="Note (optional)"
+                    />
+                    <button
+                      type="button"
+                      className="remove-dish-btn"
+                      onClick={() => removeDish(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="add-dish-btn"
+                  onClick={addDish}
+                >
+                  Add dish
+                </button>
+              </div>
+
               {/* PriceRange */}
               <label htmlFor="price">Price</label>
               <RateRangeEl
@@ -404,6 +472,55 @@ const CardsContainer = styled.div`
 
   .save-btn {
     margin-right: 20px;
+  }
+
+  .dishes {
+    margin-bottom: 16px;
+  }
+
+  .dish-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .dish-row input {
+    flex: 1;
+    margin-bottom: 0;
+    outline: none;
+    border: none;
+    padding: 10.25px 10px;
+    border-radius: var(--form-radius);
+    background-color: var(--bg-secondary-color);
+  }
+
+  .remove-dish-btn {
+    background-color: transparent;
+    border: 1px solid var(--bg-secondary-color);
+    color: var(--text-third-color);
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .add-dish-btn {
+    margin-top: 8px;
+    background-color: transparent;
+    border: 1px dashed var(--text-third-color);
+    color: var(--text-third-color);
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .add-dish-btn:hover {
+    color: var(--orange);
+    border-color: var(--orange);
   }
 
   @media (max-width: 1024px) {

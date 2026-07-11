@@ -131,6 +131,18 @@ const Restaurant = () => {
                   ))}
                 </div>
 
+                {restaurant.dishes?.length > 0 && (
+                  <div className="dishes">
+                    <p className="dishes-title">Dishes</p>
+                    {restaurant.dishes.map((dish, index) => (
+                      <div className="dish" key={index}>
+                        <p className="dish-name">{dish.name}</p>
+                        {dish.note && <p className="note">{dish.note}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="rating_price">
                   <div className="price">
                     <p>Price</p>
@@ -318,6 +330,20 @@ const Content = styled.div`
     margin-top: 4px;
     font-family: var(--primary-font-light);
     color: var(--gray-600);
+  }
+
+  .dishes {
+    margin-bottom: 30px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
+  }
+
+  .dishes-title {
+    margin-bottom: 12px;
+  }
+
+  .dishes .dish {
+    margin-bottom: 12px;
   }
 
   .rating_price {

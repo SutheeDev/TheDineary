@@ -59,6 +59,15 @@ const restaurantValidation = [
   body("notes.service").optional().isString().trim(),
   body("notes.ambience").optional().isString().trim(),
   body("notes.value").optional().isString().trim(),
+  body("dishes")
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage("Too many dishes"),
+  body("dishes.*.name")
+    .trim()
+    .notEmpty()
+    .withMessage("Dish name is required"),
+  body("dishes.*.note").optional().isString().trim(),
   body("priceRange")
     .optional()
     .isIn(["", "$", "$$", "$$$", "$$$$"])
