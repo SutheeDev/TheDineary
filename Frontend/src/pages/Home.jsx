@@ -327,11 +327,26 @@ const CardsContainer = styled.div`
     .cards {
       grid-template-columns: repeat(2, 1fr);
     }
+
+    .toolbar {
+      .search-box {
+        flex-basis: 100%;
+      }
+
+      select {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
   }
 
   @media (max-width: 639px) {
     .cards {
       grid-template-columns: 1fr;
+    }
+
+    .toolbar select {
+      flex: 1 1 calc(50% - 6px);
     }
   }
 `;
