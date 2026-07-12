@@ -214,7 +214,7 @@ const CreateRestaurant = () => {
       showToast("Restaurant saved", "success");
       // Return to the map when the add started there so the new pin shows up;
       // otherwise go to the Home list as before.
-      navigate(state?.prefill ? "/map" : "/");
+      navigate(state?.from === "map" ? "/map" : "/");
     } catch (err) {
       showToast(
         err.response?.data?.msg || "Something went wrong. Please try again.",

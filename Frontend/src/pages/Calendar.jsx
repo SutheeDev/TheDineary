@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useGlobalContext } from "../App";
 import { Link, useNavigate } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
 
 import styled from "styled-components";
 
@@ -157,6 +157,23 @@ const Calendar = () => {
     month === today.getMonth() &&
     year === today.getFullYear();
 
+  // A visit date can't be in the future (matches the create form's maxDate), so
+  // only today or earlier days offer an "add" affordance.
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const isAddable = (day) => new Date(year, month, day) <= todayStart;
+
+  // Open the create form pre-filled with this day's date. Building the ISO string
+  // from local midnight matches how the form stores a manually picked date, so it
+  // round-trips back onto the same calendar day.
+  const addOnDay = (day) => {
+    const visitDate = new Date(year, month, day).toISOString();
+    navigate("/create", { state: { prefill: { visitDate }, from: "calendar" } });
+  };
+
   return (
     <Wrapper>
       <div className="page-wrapper">
@@ -278,6 +295,16 @@ const Calendar = () => {
                 return (
                   <div key={key} className={`day${isToday(day) ? " today" : ""}`}>
                     <span className="day-num">{day}</span>
+                    {isAddable(day) && (
+                      <button
+                        type="button"
+                        className="add-day"
+                        aria-label={`Add entry on ${month + 1}/${day}`}
+                        onClick={() => addOnDay(day)}
+                      >
+                        <FiPlus />
+                      </button>
+                    )}
                     <div className="entries">
                       {shown.map((r) => (
                         <button
@@ -321,9 +348,23 @@ const Calendar = () => {
               <div className="day-detail">
                 {selectedDay ? (
                   <>
-                    <h3 className="detail-date">
-                      {formatDayHeading(selectedDay)}
-                    </h3>
+                    <div className="detail-header">
+                      <h3 className="detail-date">
+                        {formatDayHeading(selectedDay)}
+                      </h3>
+                      {isAddable(Number(selectedDay.split("-")[2])) && (
+                        <button
+                          type="button"
+                          className="add-day-btn"
+                          onClick={() =>
+                            addOnDay(Number(selectedDay.split("-")[2]))
+                          }
+                        >
+                          <FiPlus />
+                          Add on this day
+                        </button>
+                      )}
+                    </div>
                     {(entriesByDay[selectedDay] || []).length > 0 ? (
                       <div className="detail-list">
                         {entriesByDay[selectedDay].map((r) => (
@@ -494,6 +535,7 @@ const Wrapper = styled.div`
   }
 
   .day {
+    position: relative;
     min-height: 110px;
     border-radius: var(--card-radius);
     background-color: var(--bg-third-color);
@@ -510,6 +552,30 @@ const Wrapper = styled.div`
       outline: 2px solid var(--orange);
       outline-offset: -2px;
     }
+  }
+
+  .add-day {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--bg-secondary-color);
+    color: var(--orange);
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  .day:hover .add-day,
+  .add-day:focus-visible {
+    opacity: 1;
   }
 
   .day-num {
@@ -650,10 +716,33 @@ const Wrapper = styled.div`
     .day-detail {
       margin-top: 20px;
 
+      .detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
       .detail-date {
         font-family: var(--primary-font-medium);
         font-size: 16px;
-        margin-bottom: 12px;
+      }
+
+      .add-day-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        height: 34px;
+        padding: 0 12px;
+        border: none;
+        border-radius: var(--form-radius);
+        background-color: var(--bg-secondary-color);
+        color: var(--orange);
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
       }
 
       .detail-list {

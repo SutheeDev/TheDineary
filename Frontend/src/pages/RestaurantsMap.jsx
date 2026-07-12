@@ -167,7 +167,7 @@ const RestaurantsMap = () => {
   // Hand the picked place to the create form via router state so it opens
   // pre-filled; the form returns here after saving.
   const handleAdd = () => {
-    navigate("/create", { state: { prefill: result } });
+    navigate("/create", { state: { prefill: result, from: "map" } });
   };
 
   const mapped = useMemo(
