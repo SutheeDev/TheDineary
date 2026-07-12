@@ -12,6 +12,7 @@ import {
   Login,
   Register,
   RestaurantsMap,
+  Ranking,
 } from "./pages/index";
 import { Toast } from "./components";
 import apiClient from "./utils/apiClient";
@@ -92,6 +93,7 @@ const App = () => {
             <Route index element={<Home />} />
             <Route path="/create" element={<CreateRestaurant />} />
             <Route path="/map" element={<RestaurantsMap />} />
+            <Route path="/ranking" element={<Ranking />} />
             <Route
               path="/restaurant/update/:id"
               element={<UpdateRestaurant />}

@@ -8,6 +8,7 @@ import DashboardLayout from "./DashboardLayout";
 import Login from "./Login";
 import Register from "./Register";
 import RestaurantsMap from "./RestaurantsMap";
+import Ranking from "./Ranking";
 
 export {
   Home,
@@ -20,4 +21,5 @@ export {
   Login,
   Register,
   RestaurantsMap,
+  Ranking,
 };

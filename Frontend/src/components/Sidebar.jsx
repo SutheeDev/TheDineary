@@ -4,6 +4,7 @@ import { NavigationIcon } from "./";
 import { FiHome } from "react-icons/fi";
 import { FiPlusCircle } from "react-icons/fi";
 import { FiMap } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 
 const Sidebar = ({ isOpen, onClose }) => {
   return (
@@ -14,6 +15,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <NavigationIcon icon={<FiHome />} destination="/" />
           <NavigationIcon icon={<FiPlusCircle />} destination="/create" />
           <NavigationIcon icon={<FiMap />} destination="/map" />
+          <NavigationIcon icon={<FiAward />} destination="/ranking" />
         </SidebarContainer>
       </StyledAside>
     </>
