@@ -1,8 +1,16 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useGlobalContext } from "../App";
 import { Link, useNavigate } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
-import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiPlus,
+  FiTag,
+  FiMapPin,
+} from "react-icons/fi";
+import { FaStar } from "react-icons/fa";
+import { getCuisineIcon } from "../utils/constants";
 
 import styled from "styled-components";
 
@@ -63,6 +71,23 @@ const Calendar = () => {
     () => window.matchMedia(SMALL_SCREEN).matches
   );
   const [selectedDay, setSelectedDay] = useState(null);
+
+  // Desktop-only hover card for a chip: holds the restaurant plus the chip's
+  // on-screen rect used to position the card. A short show-delay (via the ref
+  // timer) prevents flicker when the mouse sweeps across several chips.
+  const [hovered, setHovered] = useState(null);
+  const hoverTimer = useRef(null);
+
+  const showHover = (r, target) => {
+    clearTimeout(hoverTimer.current);
+    const rect = target.getBoundingClientRect();
+    hoverTimer.current = setTimeout(() => setHovered({ r, rect }), 120);
+  };
+
+  const hideHover = () => {
+    clearTimeout(hoverTimer.current);
+    setHovered(null);
+  };
 
   useEffect(() => {
     const mq = window.matchMedia(SMALL_SCREEN);
@@ -173,6 +198,69 @@ const Calendar = () => {
     const visitDate = new Date(year, month, day).toISOString();
     navigate("/create", { state: { prefill: { visitDate }, from: "calendar" } });
   };
+
+  // Clear a pending show-timer if the component unmounts mid-hover.
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
+
+  const hoverCard = (() => {
+    if (!hovered) return null;
+    const { r, rect } = hovered;
+    const CuisineIcon = getCuisineIcon(r.cuisine);
+    // First two non-empty parts of the location, matching the Card component.
+    const area = [r.location?.city, r.location?.state, r.location?.country]
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(", ");
+    // Anchor above the chip when there's vertical room, else below. Anchoring
+    // by "bottom" for the above case means the card's height doesn't need to be
+    // known in advance. Clamp left so the card never spills past the viewport.
+    const placeAbove = rect.top > 200;
+    const style = {
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - 272)),
+    };
+    if (placeAbove) style.bottom = window.innerHeight - rect.top + 8;
+    else style.top = rect.bottom + 8;
+
+    return (
+      <div className="hover-card" style={style}>
+        <div className="hover-head">
+          <span className="hover-name">{r.name}</span>
+          {r.finalScore != null && (
+            <span className="hover-score">
+              <FaStar />
+              {r.finalScore}
+            </span>
+          )}
+        </div>
+        <span className={`hover-label ${r.kind}`}>
+          {r.kind === "visited" ? "Visited" : "Added"}
+        </span>
+        {(r.cuisine || r.priceRange || r.category || area) && (
+          <div className="hover-meta">
+            {r.cuisine && (
+              <span className="meta-item">
+                <CuisineIcon />
+                {r.cuisine}
+              </span>
+            )}
+            {r.priceRange && <span className="meta-item">{r.priceRange}</span>}
+            {r.category && (
+              <span className="meta-item">
+                <FiTag />
+                {r.category}
+              </span>
+            )}
+            {area && (
+              <span className="meta-item">
+                <FiMapPin />
+                {area}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  })();
 
   return (
     <Wrapper>
@@ -311,9 +399,8 @@ const Calendar = () => {
                           key={r._id}
                           type="button"
                           className="entry"
-                          title={`${r.name} - ${
-                            r.kind === "visited" ? "Visited" : "Added"
-                          }`}
+                          onMouseEnter={(e) => showHover(r, e.currentTarget)}
+                          onMouseLeave={hideHover}
                           onClick={() => navigate(`/restaurant/${r._id}`)}
                         >
                           <span className={`dot ${r.kind}`} />
@@ -394,6 +481,7 @@ const Calendar = () => {
           </div>
         )}
       </div>
+      {hoverCard}
     </Wrapper>
   );
 };
@@ -629,6 +717,81 @@ const Wrapper = styled.div`
     color: var(--text-third-color);
     cursor: pointer;
     text-align: left;
+  }
+
+  /* Custom hover card replacing the native title tooltip. Fixed-positioned so
+     it escapes the calendar's horizontal-scroll clipping; pointer-events off so
+     it never steals the hover from the chip beneath it. */
+  .hover-card {
+    position: fixed;
+    z-index: 50;
+    width: 260px;
+    max-width: calc(100vw - 24px);
+    background-color: var(--bg-color);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: 12px 14px;
+    pointer-events: none;
+
+    .hover-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .hover-name {
+      font-family: var(--primary-font-medium);
+      font-size: 15px;
+    }
+
+    .hover-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      font-size: 14px;
+
+      svg {
+        color: var(--text-secondary-color);
+      }
+    }
+
+    .hover-label {
+      display: inline-block;
+      font-family: var(--primary-font-light);
+      font-size: 12px;
+      color: var(--text-third-color);
+
+      &.visited {
+        color: var(--orange);
+      }
+    }
+
+    .hover-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--primary-font-light);
+      font-size: 13px;
+      color: var(--gray-600);
+      background-color: var(--bg-secondary-color);
+      padding: 3px 9px;
+      border-radius: var(--btn-radius);
+
+      svg {
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+    }
   }
 
   .empty-state {

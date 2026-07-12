@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useGlobalContext } from "../App";
 import styled from "styled-components";
 import formatDate from "../utils/formatDate";
@@ -26,6 +26,7 @@ const Restaurant = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { id } = useParams();
 
@@ -74,7 +75,9 @@ const Restaurant = () => {
               <div className="icons">
                 <IoIosCloseCircleOutline
                   className="close-btn"
-                  onClick={() => navigate("/")}
+                  onClick={() =>
+                    location.key !== "default" ? navigate(-1) : navigate("/")
+                  }
                 />
                 <div
                   className="menu-btn-container"
