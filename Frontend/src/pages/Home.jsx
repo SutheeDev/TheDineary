@@ -4,7 +4,7 @@ import { useGlobalContext } from "../App";
 import apiClient from "../utils/apiClient";
 import { Link } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiGrid, FiList } from "react-icons/fi";
 
 import styled from "styled-components";
 
@@ -62,8 +62,17 @@ const Home = () => {
   const [sortKey, setSortKey] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
 
+  // Card ("grid") vs compact "list" layout, remembered across visits.
+  const [view, setView] = useState(
+    () => localStorage.getItem("home-view") || "grid"
+  );
+
   const [list, setList] = useState([]);
   const [isFetching, setIsFetching] = useState(true);
+
+  useEffect(() => {
+    localStorage.setItem("home-view", view);
+  }, [view]);
 
   // Cuisine options come from the full, unfiltered global list.
   const cuisineOptions = useMemo(() => {
@@ -181,6 +190,27 @@ const Home = () => {
               </option>
             ))}
           </select>
+
+          <div className="view-toggle">
+            <button
+              type="button"
+              className={view === "grid" ? "active" : ""}
+              onClick={() => setView("grid")}
+              aria-label="Card view"
+              aria-pressed={view === "grid"}
+            >
+              <FiGrid />
+            </button>
+            <button
+              type="button"
+              className={view === "list" ? "active" : ""}
+              onClick={() => setView("list")}
+              aria-label="List view"
+              aria-pressed={view === "list"}
+            >
+              <FiList />
+            </button>
+          </div>
         </div>
 
         {isFetching && list.length === 0 ? (
@@ -203,9 +233,9 @@ const Home = () => {
             </div>
           )
         ) : (
-          <section className="cards">
+          <section className={`cards ${view}`}>
             {list.map((res) => (
-              <Card key={res._id} restaurant={res} />
+              <Card key={res._id} restaurant={res} view={view} />
             ))}
           </section>
         )}
@@ -284,6 +314,35 @@ const CardsContainer = styled.div`
       background-repeat: no-repeat;
       background-position: right 10px center;
     }
+
+    .view-toggle {
+      display: flex;
+      height: 42px;
+      box-sizing: border-box;
+      padding: 4px;
+      gap: 4px;
+      border-radius: var(--form-radius);
+      background-color: var(--bg-secondary-color);
+
+      button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        border: none;
+        border-radius: calc(var(--form-radius) - 2px);
+        background-color: transparent;
+        color: var(--text-third-color);
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.1s ease;
+      }
+
+      button.active {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+      }
+    }
   }
 
   .empty-state {
@@ -314,17 +373,23 @@ const CardsContainer = styled.div`
     }
   }
 
-  .cards {
+  .cards.grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--cards-gap);
+  }
+
+  .cards.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   @media (max-width: 1024px) {
     padding-left: var(--container-padding);
     padding-top: var(--container-padding);
 
-    .cards {
+    .cards.grid {
       grid-template-columns: repeat(2, 1fr);
     }
 
@@ -341,7 +406,7 @@ const CardsContainer = styled.div`
   }
 
   @media (max-width: 639px) {
-    .cards {
+    .cards.grid {
       grid-template-columns: 1fr;
     }
 
