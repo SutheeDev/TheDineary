@@ -84,9 +84,15 @@ const Calendar = () => {
     hoverTimer.current = setTimeout(() => setHovered({ r, rect }), 120);
   };
 
-  const hideHover = () => {
+  // Delay the close so the mouse can cross the gap from the chip onto the card;
+  // hovering the card itself cancels this and keeps it open long enough to click.
+  const scheduleHide = () => {
     clearTimeout(hoverTimer.current);
-    setHovered(null);
+    hoverTimer.current = setTimeout(() => setHovered(null), 300);
+  };
+
+  const cancelHide = () => {
+    clearTimeout(hoverTimer.current);
   };
 
   useEffect(() => {
@@ -222,7 +228,13 @@ const Calendar = () => {
     else style.top = rect.bottom + 8;
 
     return (
-      <div className="hover-card" style={style}>
+      <div
+        className="hover-card"
+        style={style}
+        onMouseEnter={cancelHide}
+        onMouseLeave={scheduleHide}
+        onClick={() => navigate(`/restaurant/${r._id}`)}
+      >
         <div className="hover-head">
           <span className="hover-name">{r.name}</span>
           {r.finalScore != null && (
@@ -400,7 +412,7 @@ const Calendar = () => {
                           type="button"
                           className="entry"
                           onMouseEnter={(e) => showHover(r, e.currentTarget)}
-                          onMouseLeave={hideHover}
+                          onMouseLeave={scheduleHide}
                           onClick={() => navigate(`/restaurant/${r._id}`)}
                         >
                           <span className={`dot ${r.kind}`} />
@@ -720,8 +732,8 @@ const Wrapper = styled.div`
   }
 
   /* Custom hover card replacing the native title tooltip. Fixed-positioned so
-     it escapes the calendar's horizontal-scroll clipping; pointer-events off so
-     it never steals the hover from the chip beneath it. */
+     it escapes the calendar's horizontal-scroll clipping. It stays interactive
+     so the mouse can move onto it and click through to the restaurant. */
   .hover-card {
     position: fixed;
     z-index: 50;
@@ -731,7 +743,8 @@ const Wrapper = styled.div`
     border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
     padding: 12px 14px;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
 
     .hover-head {
       display: flex;
