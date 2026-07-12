@@ -13,7 +13,6 @@ const restaurantSchema = new mongoose.Schema(
     },
     visitDate: {
       type: Date,
-      required: true,
     },
     ratings: {
       food: { type: Number, min: 0.5, max: 5, required: true },
@@ -68,6 +67,9 @@ const restaurantSchema = new mongoose.Schema(
       lat: { type: Number },
       lng: { type: Number },
       placeId: { type: String },
+      city: { type: String },
+      state: { type: String },
+      country: { type: String },
     },
     userId: {
       type: Schema.Types.ObjectId,

@@ -25,21 +25,21 @@ const CATEGORY_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: "visitDate", label: "Visit date" },
+  { value: "date", label: "Date" },
   { value: "finalScore", label: "Final score" },
   { value: "name", label: "Name" },
   { value: "priceRange", label: "Price" },
-  { value: "createdAt", label: "Date added" },
 ];
 
 // Direction labels change meaning per sort field, e.g. "Newest" vs "Highest".
 // Each field lists its directions in natural order (primary one first).
+// "date" is the unified sort: each entry's visit date, or its added date when it
+// has no visit date.
 const DIRECTION_LABELS = {
-  visitDate: { desc: "Newest first", asc: "Oldest first" },
+  date: { desc: "Newest first", asc: "Oldest first" },
   finalScore: { desc: "Highest first", asc: "Lowest first" },
   name: { asc: "A to Z", desc: "Z to A" },
   priceRange: { asc: "Low to high", desc: "High to low" },
-  createdAt: { desc: "Newest added", asc: "Oldest added" },
 };
 
 // One flat list combining each field with each direction, so the field and
@@ -59,7 +59,7 @@ const Home = () => {
   const [cuisine, setCuisine] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [category, setCategory] = useState("");
-  const [sortKey, setSortKey] = useState("visitDate");
+  const [sortKey, setSortKey] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
 
   const [list, setList] = useState([]);

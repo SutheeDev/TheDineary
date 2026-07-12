@@ -46,9 +46,7 @@ const ratingCategory = (field, label) =>
 const restaurantValidation = [
   body("name").trim().notEmpty().withMessage("Name is required"),
   body("visitDate")
-    .notEmpty()
-    .withMessage("Visit date is required")
-    .bail()
+    .optional({ values: "falsy" })
     .isISO8601()
     .withMessage("Visit date must be a valid date"),
   ratingCategory("food", "Food"),
@@ -95,6 +93,9 @@ const restaurantValidation = [
     .withMessage("Longitude must be between -180 and 180"),
   body("location.address").optional().isString().trim(),
   body("location.placeId").optional().isString().trim(),
+  body("location.city").optional().isString().trim(),
+  body("location.state").optional().isString().trim(),
+  body("location.country").optional().isString().trim(),
 ];
 
 export { validate, registerValidation, loginValidation, restaurantValidation };

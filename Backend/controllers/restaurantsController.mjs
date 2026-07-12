@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Restaurant from "../models/Restaurant.mjs";
 import { NotFoundError } from "../errors/customErrors.mjs";
 
@@ -43,14 +44,13 @@ const createRestaurant = async (req, res, next) => {
   }
 };
 
-// Only these fields may be sorted on. Anything else falls back to visitDate,
-// so a bad or malicious ?sort value can never reach the query untouched.
+// Direct-field sorts (a plain .find().sort()). The unified "date" sort is handled
+// separately because it sorts on a computed value (visitDate, else createdAt).
+// Anything not listed here falls back to the "date" sort.
 const SORT_FIELDS = {
-  visitDate: "visitDate",
   finalScore: "finalScore",
   name: "name",
   priceRange: "priceRange",
-  createdAt: "createdAt",
 };
 
 const getRestaurants = async (req, res, next) => {
@@ -78,10 +78,25 @@ const getRestaurants = async (req, res, next) => {
       query.category = category === NO_VALUE ? { $in: [null, ""] } : category;
     }
 
-    const field = SORT_FIELDS[sort] || "visitDate";
     const direction = order === "asc" ? 1 : -1;
 
-    const restaurants = await Restaurant.find(query).sort({ [field]: direction });
+    // Any sort that is not a known direct field is the unified "date" sort. It
+    // orders by an entry's effective date: its visitDate, or its createdAt when
+    // there is no visit date. That is a computed value, so it needs an
+    // aggregation ($match does not auto-cast userId to an ObjectId like find does).
+    let restaurants;
+    if (SORT_FIELDS[sort]) {
+      restaurants = await Restaurant.find(query).sort({
+        [SORT_FIELDS[sort]]: direction,
+      });
+    } else {
+      restaurants = await Restaurant.aggregate([
+        { $match: { ...query, userId: new mongoose.Types.ObjectId(req.userId) } },
+        { $addFields: { _effDate: { $ifNull: ["$visitDate", "$createdAt"] } } },
+        { $sort: { _effDate: direction } },
+        { $unset: "_effDate" },
+      ]);
+    }
 
     res.status(200).json(restaurants);
   } catch (err) {

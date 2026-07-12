@@ -179,7 +179,6 @@ const CreateRestaurant = () => {
   const validate = () => {
     const errors = {};
     if (!entry.name) errors.name = "(Required)";
-    if (!entry.visitDate) errors.visitDate = "(Required)";
     CATEGORIES.forEach(({ key }) => {
       if (!(entry.ratings[key] > 0)) errors[key] = "(Required)";
     });
@@ -323,7 +322,7 @@ const CreateRestaurant = () => {
                 <div className="field-label-row">
                   <label htmlFor="date">
                     Date Visit
-                    <span className="required-star"> *</span>
+                    <span className="optional-hint"> (optional)</span>
                   </label>
                   {fieldErrors.visitDate && (
                     <span className="field-error">{fieldErrors.visitDate}</span>
@@ -483,6 +482,11 @@ const CardsContainer = styled.div`
 
   .required-star {
     color: var(--orange);
+  }
+
+  .optional-hint {
+    color: var(--text-third-color);
+    font-size: 13px;
   }
 
   .place-search {

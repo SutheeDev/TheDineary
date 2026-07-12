@@ -19,8 +19,8 @@ import { IoIosCloseCircleOutline } from "react-icons/io";
 import { FiEdit2 } from "react-icons/fi";
 import { GoKebabHorizontal } from "react-icons/go";
 import { FiCalendar } from "react-icons/fi";
-import { FiCoffee } from "react-icons/fi";
 import { FiTag } from "react-icons/fi";
+import { getCuisineIcon } from "../utils/constants";
 
 const Restaurant = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -32,8 +32,14 @@ const Restaurant = () => {
   const { restaurants, isAlert, isLoading } = useGlobalContext();
   const restaurant = restaurants.find((res) => res._id === id);
 
-  const date = new Date(restaurant.visitDate);
-  const formattedDate = formatDate(date);
+  // Visit date is optional: show the visit date when set, otherwise fall back to
+  // the entry date (createdAt) and label it "Added" instead of "Visited".
+  const hasVisitDate = Boolean(restaurant.visitDate);
+  const shownDate = formatDate(
+    new Date(hasVisitDate ? restaurant.visitDate : restaurant.createdAt)
+  );
+  const dateLabel = hasVisitDate ? "Visited" : "Added";
+  const CuisineIcon = getCuisineIcon(restaurant.cuisine);
 
   const ratings = restaurant.ratings || {};
   const notes = restaurant.notes || {};
@@ -87,12 +93,16 @@ const Restaurant = () => {
                 <div className="date_cuisine">
                   <div className="date">
                     <FiCalendar />
-                    <p>{formattedDate}</p>
+                    <p>
+                      {dateLabel}: {shownDate}
+                    </p>
                   </div>
-                  <div className="cuisine">
-                    <FiCoffee />
-                    <p>{restaurant.cuisine}</p>
-                  </div>
+                  {restaurant.cuisine && (
+                    <div className="cuisine">
+                      <CuisineIcon />
+                      <p>{restaurant.cuisine}</p>
+                    </div>
+                  )}
                   {restaurant.category && (
                     <div className="category">
                       <FiTag />

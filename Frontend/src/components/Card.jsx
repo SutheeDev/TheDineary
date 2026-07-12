@@ -6,9 +6,13 @@ import formatDate from "../utils/formatDate";
 const Card = ({ restaurant }) => {
   const navigate = useNavigate();
 
-  const date = new Date(restaurant.visitDate);
-  // Format date
-  const formattedDate = formatDate(date);
+  // Visit date is optional: show it when set, otherwise fall back to the entry
+  // date (createdAt) and label it "Added" instead of "Visited".
+  const hasVisitDate = Boolean(restaurant.visitDate);
+  const shownDate = formatDate(
+    new Date(hasVisitDate ? restaurant.visitDate : restaurant.createdAt)
+  );
+  const dateLabel = hasVisitDate ? "Visited" : "Added";
 
   const handleClick = (e) => {
     navigate(`/restaurant/${restaurant._id}`);
@@ -30,7 +34,7 @@ const Card = ({ restaurant }) => {
           )}
         </div>
         <p>
-          Visit Date : <span>{formattedDate}</span>
+          {dateLabel} : <span>{shownDate}</span>
         </p>
       </div>
     </Wrapper>
