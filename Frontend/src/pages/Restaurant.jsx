@@ -22,6 +22,94 @@ import { FiCalendar } from "react-icons/fi";
 import { FiTag } from "react-icons/fi";
 import { getCuisineIcon } from "../utils/constants";
 
+// Read-only Google feature chips, grouped for display. Each key matches a
+// canonical attribute stored on restaurant.google.attributes (see PlaceSearch);
+// only keys present-and-true are shown, and empty groups are skipped.
+const ATTRIBUTE_GROUPS = [
+  {
+    title: "Service",
+    keys: {
+      dineIn: "Dine-in",
+      takeout: "Takeout",
+      delivery: "Delivery",
+      curbsidePickup: "Curbside pickup",
+      reservable: "Reservations",
+      outdoorSeating: "Outdoor seating",
+    },
+  },
+  {
+    title: "Food & Drink",
+    keys: {
+      servesBreakfast: "Breakfast",
+      servesLunch: "Lunch",
+      servesDinner: "Dinner",
+      servesBrunch: "Brunch",
+      servesVegetarianFood: "Vegetarian",
+      servesCoffee: "Coffee",
+      servesDessert: "Dessert",
+      servesBeer: "Beer",
+      servesWine: "Wine",
+      servesCocktails: "Cocktails",
+    },
+  },
+  {
+    title: "Amenities",
+    keys: {
+      goodForChildren: "Good for kids",
+      menuForChildren: "Kids' menu",
+      goodForGroups: "Good for groups",
+      restroom: "Restroom",
+      goodForWatchingSports: "Sports viewing",
+      liveMusic: "Live music",
+      allowsDogs: "Dog-friendly",
+    },
+  },
+  {
+    title: "Accessibility",
+    keys: {
+      hasWheelchairAccessibleEntrance: "Accessible entrance",
+      hasWheelchairAccessibleParking: "Accessible parking",
+      hasWheelchairAccessibleRestroom: "Accessible restroom",
+      hasWheelchairAccessibleSeating: "Accessible seating",
+    },
+  },
+  {
+    title: "Parking",
+    keys: {
+      hasFreeParkingLot: "Free parking lot",
+      hasPaidParkingLot: "Paid parking lot",
+      hasFreeStreetParking: "Free street parking",
+      hasPaidStreetParking: "Paid street parking",
+      hasFreeGarageParking: "Free garage",
+      hasPaidGarageParking: "Paid garage",
+      hasValetParking: "Valet",
+    },
+  },
+  {
+    title: "Payments",
+    keys: {
+      acceptsCreditCards: "Credit cards",
+      acceptsDebitCards: "Debit cards",
+      acceptsNFC: "NFC / contactless",
+      acceptsCashOnly: "Cash only",
+    },
+  },
+];
+
+// Format a Google Money amount (a plain number) as a whole-unit currency string.
+const formatMoney = (amount, currency) => {
+  if (amount == null) return null;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency || "USD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount}`;
+  }
+};
+
 const Restaurant = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -53,6 +141,26 @@ const Restaurant = () => {
   ];
   let price;
   restaurant.priceRange ? (price = restaurant.priceRange.length) : (price = 0);
+
+  // Read-only Google data (optional; absent on manual entries).
+  const google = restaurant.google;
+
+  let perPersonPrice = null;
+  if (google?.priceRange) {
+    const { startPrice, endPrice, currency } = google.priceRange;
+    const start = formatMoney(startPrice, currency);
+    const end = formatMoney(endPrice, currency);
+    if (start && end) perPersonPrice = `${start} - ${end} per person`;
+    else if (start) perPersonPrice = `From ${start} per person`;
+  }
+
+  const attributes = google?.attributes || {};
+  const featureGroups = ATTRIBUTE_GROUPS.map((group) => ({
+    title: group.title,
+    items: Object.entries(group.keys)
+      .filter(([key]) => attributes[key])
+      .map(([, label]) => label),
+  })).filter((group) => group.items.length > 0);
 
   // Gentle nudge: list the optional fields this entry is still missing so they
   // can be filled in later. Photo is left out because every entry gets a
@@ -166,6 +274,60 @@ const Restaurant = () => {
                     />
                   </div>
                 </div>
+
+                {google && (
+                  <div className="google-info">
+                    {google.hours?.length > 0 && (
+                      <div className="google-section">
+                        <p className="google-title">Opening hours</p>
+                        <ul className="hours-list">
+                          {google.hours.map((line, index) => (
+                            <li key={index}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {google.website && (
+                      <div className="google-section">
+                        <p className="google-title">Website</p>
+                        <a
+                          className="website-link"
+                          href={google.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {google.website}
+                        </a>
+                      </div>
+                    )}
+
+                    {perPersonPrice && (
+                      <div className="google-section">
+                        <p className="google-title">Price per person</p>
+                        <p>{perPersonPrice}</p>
+                      </div>
+                    )}
+
+                    {featureGroups.length > 0 && (
+                      <div className="google-section">
+                        <p className="google-title">Features</p>
+                        {featureGroups.map((group) => (
+                          <div className="feature-group" key={group.title}>
+                            <p className="feature-group-title">{group.title}</p>
+                            <div className="feature-chips">
+                              {group.items.map((label) => (
+                                <span className="feature-chip" key={label}>
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {missingFields.length > 0 && (
                   <div className="complete-entry">
@@ -362,6 +524,59 @@ const Content = styled.div`
   .rating_price {
     display: flex;
     align-items: center;
+  }
+
+  .google-info {
+    margin-bottom: 30px;
+  }
+
+  .google-section {
+    padding-top: 24px;
+    margin-bottom: 20px;
+    border-top: 1px solid var(--bg-secondary-color);
+  }
+
+  .google-title {
+    margin-bottom: 12px;
+  }
+
+  .hours-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .hours-list li {
+    font-family: var(--primary-font-light);
+    color: var(--gray-600);
+    margin-bottom: 4px;
+  }
+
+  .website-link {
+    color: var(--orange);
+    word-break: break-all;
+  }
+
+  .feature-group {
+    margin-bottom: 16px;
+  }
+
+  .feature-group-title {
+    font-size: 14px;
+    color: var(--text-third-color);
+    margin-bottom: 8px;
+  }
+
+  .feature-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .feature-chip {
+    background-color: var(--bg-secondary-color);
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
+    font-size: 14px;
   }
 
   .menu-btn-container {

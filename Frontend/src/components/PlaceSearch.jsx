@@ -25,6 +25,81 @@ const mapPriceLevel = (priceLevel) => {
   return PRICE_MAP[priceLevel.replace(/^PRICE_LEVEL_/, "")] || "";
 };
 
+// A Google Money value is { currencyCode, units (whole), nanos (10^-9 parts) }.
+// Turn it into a plain number amount.
+const moneyAmount = (m) => (m ? m.units + (m.nanos || 0) / 1e9 : undefined);
+
+// The simple boolean attributes we read off a Place, mapped from the SDK's
+// property name to the shorter canonical key we store.
+const SIMPLE_ATTRS = {
+  hasDineIn: "dineIn",
+  hasTakeout: "takeout",
+  hasDelivery: "delivery",
+  hasCurbsidePickup: "curbsidePickup",
+  isReservable: "reservable",
+  hasOutdoorSeating: "outdoorSeating",
+  hasRestroom: "restroom",
+  servesBreakfast: "servesBreakfast",
+  servesLunch: "servesLunch",
+  servesDinner: "servesDinner",
+  servesBrunch: "servesBrunch",
+  servesVegetarianFood: "servesVegetarianFood",
+  servesBeer: "servesBeer",
+  servesWine: "servesWine",
+  servesCocktails: "servesCocktails",
+  servesCoffee: "servesCoffee",
+  servesDessert: "servesDessert",
+  isGoodForChildren: "goodForChildren",
+  hasMenuForChildren: "menuForChildren",
+  isGoodForGroups: "goodForGroups",
+  isGoodForWatchingSports: "goodForWatchingSports",
+  allowsDogs: "allowsDogs",
+  hasLiveMusic: "liveMusic",
+};
+
+// The nested attribute objects and the sub-booleans we read off each. These
+// keep their descriptive names (used as-is when displaying).
+const OPTION_ATTRS = {
+  accessibilityOptions: [
+    "hasWheelchairAccessibleEntrance",
+    "hasWheelchairAccessibleParking",
+    "hasWheelchairAccessibleRestroom",
+    "hasWheelchairAccessibleSeating",
+  ],
+  parkingOptions: [
+    "hasFreeGarageParking",
+    "hasFreeParkingLot",
+    "hasFreeStreetParking",
+    "hasPaidGarageParking",
+    "hasPaidParkingLot",
+    "hasPaidStreetParking",
+    "hasValetParking",
+  ],
+  paymentOptions: [
+    "acceptsCashOnly",
+    "acceptsCreditCards",
+    "acceptsDebitCards",
+    "acceptsNFC",
+  ],
+};
+
+// Collect only the attributes that came back true into one flat bag, so the
+// stored doc stays compact and the detail page just renders what is present.
+const buildAttributes = (place) => {
+  const attrs = {};
+  for (const [prop, key] of Object.entries(SIMPLE_ATTRS)) {
+    if (place[prop] === true) attrs[key] = true;
+  }
+  for (const [objName, subKeys] of Object.entries(OPTION_ATTRS)) {
+    const obj = place[objName];
+    if (!obj) continue;
+    for (const subKey of subKeys) {
+      if (obj[subKey] === true) attrs[subKey] = true;
+    }
+  }
+  return attrs;
+};
+
 // Google Places (New) returns addressComponents as a list of parts, each with
 // a `types` array plus `longText`/`shortText`. Pull them apart into the
 // separate labelled fields we show (built to work for any country, so fields a
@@ -92,10 +167,40 @@ const PlaceSearch = ({ onSelect, className, clearOnSelect, hideClearButton }) =>
           "addressComponents",
           "location",
           "id",
+          // H9: richer read-only data shown on the detail page.
+          "regularOpeningHours",
+          "websiteURI",
+          "priceRange",
+          ...Object.keys(SIMPLE_ATTRS),
+          ...Object.keys(OPTION_ATTRS),
         ],
       });
 
       const parts = parseAddressComponents(place.addressComponents);
+
+      // Build the read-only Google blob. Any of these may be missing for a
+      // given place, so include it only when at least one piece has data.
+      const hours = place.regularOpeningHours?.weekdayDescriptions || [];
+      const website = place.websiteURI || "";
+      const pr = place.priceRange;
+      const priceRange = pr
+        ? {
+            startPrice: moneyAmount(pr.startPrice),
+            endPrice: moneyAmount(pr.endPrice),
+            currency:
+              pr.startPrice?.currencyCode || pr.endPrice?.currencyCode || "",
+          }
+        : undefined;
+      const attributes = buildAttributes(place);
+
+      const hasGoogleData =
+        hours.length > 0 ||
+        website ||
+        priceRange ||
+        Object.keys(attributes).length > 0;
+      const google = hasGoogleData
+        ? { hours, website, priceRange, attributes }
+        : null;
 
       onSelectRef.current({
         name: place.displayName || "",
@@ -108,6 +213,7 @@ const PlaceSearch = ({ onSelect, className, clearOnSelect, hideClearButton }) =>
           placeId: place.id,
           ...parts,
         },
+        google,
       });
 
       if (clearOnSelectRef.current && autocompleteEl) {

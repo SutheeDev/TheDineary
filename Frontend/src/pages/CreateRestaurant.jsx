@@ -48,6 +48,7 @@ const initialState = {
   priceRange: "",
   category: "",
   location: null,
+  google: null,
 };
 
 const CreateRestaurant = () => {
@@ -76,6 +77,7 @@ const CreateRestaurant = () => {
       cuisine: place.cuisine || prev.cuisine,
       priceRange: place.priceRange || prev.priceRange,
       location: place.location,
+      google: place.google ?? prev.google,
     }));
   };
 

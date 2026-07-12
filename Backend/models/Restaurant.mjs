@@ -71,6 +71,19 @@ const restaurantSchema = new mongoose.Schema(
       state: { type: String },
       country: { type: String },
     },
+    // Read-only data pulled from Google Places when a restaurant is picked via
+    // search. Optional; manual entries have none. attributes is a loose bag of
+    // whichever amenity/service booleans came back true (see PlaceSearch.jsx).
+    google: {
+      hours: [{ type: String }],
+      website: { type: String },
+      priceRange: {
+        startPrice: { type: Number },
+        endPrice: { type: Number },
+        currency: { type: String },
+      },
+      attributes: { type: Schema.Types.Mixed },
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",

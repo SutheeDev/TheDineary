@@ -96,6 +96,13 @@ const restaurantValidation = [
   body("location.city").optional().isString().trim(),
   body("location.state").optional().isString().trim(),
   body("location.country").optional().isString().trim(),
+  // Read-only Google data (H9): light optional checks only.
+  body("google.website").optional().isString().trim(),
+  body("google.hours").optional().isArray(),
+  body("google.priceRange.startPrice").optional().isFloat(),
+  body("google.priceRange.endPrice").optional().isFloat(),
+  body("google.priceRange.currency").optional().isString().trim(),
+  body("google.attributes").optional().isObject(),
 ];
 
 export { validate, registerValidation, loginValidation, restaurantValidation };
