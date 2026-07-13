@@ -7,13 +7,11 @@ import { useParams, useNavigate } from "react-router-dom";
 const Alert = () => {
   const {
     setIsAlert,
-    user,
     restaurants,
     setRestaurants,
     setIsLoading,
     isLoading,
   } = useGlobalContext();
-  const userId = user._id;
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -22,7 +20,7 @@ const Alert = () => {
     setIsAlert(false);
     setIsLoading(true);
     try {
-      const response = await apiClient.delete(`/restaurants/${userId}/${id}`);
+      const response = await apiClient.delete(`/restaurants/${id}`);
       const deletedRes = response.data;
       setRestaurants(restaurants.filter((res) => res._id !== deletedRes._id));
       navigate("/");
