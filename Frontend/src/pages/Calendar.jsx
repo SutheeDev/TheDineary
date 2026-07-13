@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useGlobalContext } from "../App";
-import { Link, useNavigate } from "react-router-dom";
-import { LuUtensilsCrossed } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -337,161 +336,158 @@ const Calendar = () => {
           </div>
         </div>
 
-        {restaurants.length === 0 ? (
-          <div className="empty-state">
-            <LuUtensilsCrossed className="empty-icon" />
-            <h2>No restaurants yet</h2>
-            <p>Add a restaurant to see it on the calendar.</p>
-            <Link to="/create" className="btn orange-btn">
-              Add your first restaurant
-            </Link>
+        {restaurants.length === 0 && (
+          <p className="calendar-hint">
+            {isSmall
+              ? "Tap a day to add your first restaurant."
+              : "Hover a day and click + to add your first restaurant."}
+          </p>
+        )}
+
+        <div className="calendar">
+          <div className="weekdays">
+            {WEEKDAYS.map((wd) => (
+              <span key={wd}>{wd}</span>
+            ))}
           </div>
-        ) : (
-          <div className="calendar">
-            <div className="weekdays">
-              {WEEKDAYS.map((wd) => (
-                <span key={wd}>{wd}</span>
-              ))}
-            </div>
-            <div className="days">
-              {cells.map((day, i) => {
-                if (day === null)
-                  return <div key={`blank-${i}`} className="day blank" />;
+          <div className="days">
+            {cells.map((day, i) => {
+              if (day === null)
+                return <div key={`blank-${i}`} className="day blank" />;
 
-                const key = `${year}-${month}-${day}`;
-                const entries = entriesByDay[key] || [];
-                const expanded = expandedDay === key;
-                const shown = expanded ? entries : entries.slice(0, MAX_CHIPS);
-                const hidden = entries.length - shown.length;
+              const key = `${year}-${month}-${day}`;
+              const entries = entriesByDay[key] || [];
+              const expanded = expandedDay === key;
+              const shown = expanded ? entries : entries.slice(0, MAX_CHIPS);
+              const hidden = entries.length - shown.length;
 
-                // Small screens: the whole cell is tappable and shows dots
-                // instead of name chips; the tapped day's entries appear in the
-                // panel below the grid.
-                if (isSmall) {
-                  const extraDots = entries.length - MAX_DOTS;
-                  return (
-                    <div
-                      key={key}
-                      className={`day compact${isToday(day) ? " today" : ""}${
-                        selectedDay === key ? " selected" : ""
-                      }`}
-                      onClick={() => setSelectedDay(key)}
-                    >
-                      <span className="day-num">{day}</span>
-                      {entries.length > 0 && (
-                        <div className="dots">
-                          {entries.slice(0, MAX_DOTS).map((r) => (
-                            <span key={r._id} className={`dot ${r.kind}`} />
-                          ))}
-                          {extraDots > 0 && (
-                            <span className="dot-more">+{extraDots}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
+              // Small screens: the whole cell is tappable and shows dots
+              // instead of name chips; the tapped day's entries appear in the
+              // panel below the grid.
+              if (isSmall) {
+                const extraDots = entries.length - MAX_DOTS;
                 return (
-                  <div key={key} className={`day${isToday(day) ? " today" : ""}`}>
+                  <div
+                    key={key}
+                    className={`day compact${isToday(day) ? " today" : ""}${
+                      selectedDay === key ? " selected" : ""
+                    }`}
+                    onClick={() => setSelectedDay(key)}
+                  >
                     <span className="day-num">{day}</span>
-                    {isAddable(day) && (
+                    {entries.length > 0 && (
+                      <div className="dots">
+                        {entries.slice(0, MAX_DOTS).map((r) => (
+                          <span key={r._id} className={`dot ${r.kind}`} />
+                        ))}
+                        {extraDots > 0 && (
+                          <span className="dot-more">+{extraDots}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={key} className={`day${isToday(day) ? " today" : ""}`}>
+                  <span className="day-num">{day}</span>
+                  {isAddable(day) && (
+                    <button
+                      type="button"
+                      className="add-day"
+                      aria-label={`Add entry on ${month + 1}/${day}`}
+                      onClick={() => addOnDay(day)}
+                    >
+                      <FiPlus />
+                    </button>
+                  )}
+                  <div className="entries">
+                    {shown.map((r) => (
+                      <button
+                        key={r._id}
+                        type="button"
+                        className="entry"
+                        onMouseEnter={(e) => showHover(r, e.currentTarget)}
+                        onMouseLeave={scheduleHide}
+                        onClick={() => navigate(`/restaurant/${r._id}`)}
+                      >
+                        <span className={`dot ${r.kind}`} />
+                        <span className="entry-name">{r.name}</span>
+                      </button>
+                    ))}
+                    {hidden > 0 && (
                       <button
                         type="button"
-                        className="add-day"
-                        aria-label={`Add entry on ${month + 1}/${day}`}
-                        onClick={() => addOnDay(day)}
+                        className="more"
+                        onClick={() => setExpandedDay(key)}
                       >
-                        <FiPlus />
+                        +{hidden} more
                       </button>
                     )}
-                    <div className="entries">
-                      {shown.map((r) => (
+                    {expanded && entries.length > MAX_CHIPS && (
+                      <button
+                        type="button"
+                        className="more"
+                        onClick={() => setExpandedDay(null)}
+                      >
+                        Show less
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {isSmall && (
+            <div className="day-detail">
+              {selectedDay ? (
+                <>
+                  <div className="detail-header">
+                    <h3 className="detail-date">
+                      {formatDayHeading(selectedDay)}
+                    </h3>
+                    {isAddable(Number(selectedDay.split("-")[2])) && (
+                      <button
+                        type="button"
+                        className="add-day-btn"
+                        onClick={() =>
+                          addOnDay(Number(selectedDay.split("-")[2]))
+                        }
+                      >
+                        <FiPlus />
+                        Add on this day
+                      </button>
+                    )}
+                  </div>
+                  {(entriesByDay[selectedDay] || []).length > 0 ? (
+                    <div className="detail-list">
+                      {entriesByDay[selectedDay].map((r) => (
                         <button
                           key={r._id}
                           type="button"
                           className="entry"
-                          onMouseEnter={(e) => showHover(r, e.currentTarget)}
-                          onMouseLeave={scheduleHide}
                           onClick={() => navigate(`/restaurant/${r._id}`)}
                         >
                           <span className={`dot ${r.kind}`} />
                           <span className="entry-name">{r.name}</span>
+                          <span className="entry-label">
+                            {r.kind === "visited" ? "Visited" : "Added"}
+                          </span>
                         </button>
                       ))}
-                      {hidden > 0 && (
-                        <button
-                          type="button"
-                          className="more"
-                          onClick={() => setExpandedDay(key)}
-                        >
-                          +{hidden} more
-                        </button>
-                      )}
-                      {expanded && entries.length > MAX_CHIPS && (
-                        <button
-                          type="button"
-                          className="more"
-                          onClick={() => setExpandedDay(null)}
-                        >
-                          Show less
-                        </button>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  ) : (
+                    <p className="detail-empty">No entries on this day.</p>
+                  )}
+                </>
+              ) : (
+                <p className="detail-empty">Select a day to see its entries.</p>
+              )}
             </div>
-
-            {isSmall && (
-              <div className="day-detail">
-                {selectedDay ? (
-                  <>
-                    <div className="detail-header">
-                      <h3 className="detail-date">
-                        {formatDayHeading(selectedDay)}
-                      </h3>
-                      {isAddable(Number(selectedDay.split("-")[2])) && (
-                        <button
-                          type="button"
-                          className="add-day-btn"
-                          onClick={() =>
-                            addOnDay(Number(selectedDay.split("-")[2]))
-                          }
-                        >
-                          <FiPlus />
-                          Add on this day
-                        </button>
-                      )}
-                    </div>
-                    {(entriesByDay[selectedDay] || []).length > 0 ? (
-                      <div className="detail-list">
-                        {entriesByDay[selectedDay].map((r) => (
-                          <button
-                            key={r._id}
-                            type="button"
-                            className="entry"
-                            onClick={() => navigate(`/restaurant/${r._id}`)}
-                          >
-                            <span className={`dot ${r.kind}`} />
-                            <span className="entry-name">{r.name}</span>
-                            <span className="entry-label">
-                              {r.kind === "visited" ? "Visited" : "Added"}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="detail-empty">No entries on this day.</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="detail-empty">Select a day to see its entries.</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
       {hoverCard}
     </Wrapper>
@@ -807,32 +803,11 @@ const Wrapper = styled.div`
     }
   }
 
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
-    padding: 80px 20px;
-
-    .empty-icon {
-      font-size: 64px;
-      color: var(--orange);
-      margin-bottom: 8px;
-    }
-
-    h2 {
-      font-family: var(--primary-font-medium);
-      font-weight: 600;
-    }
-
-    p {
-      color: var(--text-third-color);
-    }
-
-    .btn {
-      margin-top: 8px;
-    }
+  .calendar-hint {
+    margin-bottom: 20px;
+    font-family: var(--primary-font-light);
+    font-size: 14px;
+    color: var(--text-third-color);
   }
 
   @media (max-width: 1024px) {

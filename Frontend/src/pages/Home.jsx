@@ -121,97 +121,99 @@ const Home = () => {
         </h1>
         <p className="subtitle">Your restaurant diary</p>
 
-        <div className="toolbar">
-          <div className="search-box">
-            <FiSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search restaurants by name"
-            />
-          </div>
+        {restaurants.length > 0 && (
+          <div className="toolbar">
+            <div className="search-box">
+              <FiSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search by name"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search restaurants by name"
+              />
+            </div>
 
-          <select
-            value={cuisine}
-            onChange={(e) => setCuisine(e.target.value)}
-            aria-label="Filter by cuisine"
-          >
-            <option value="">All cuisines</option>
-            {cuisineOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={priceRange}
-            onChange={(e) => setPriceRange(e.target.value)}
-            aria-label="Filter by price"
-          >
-            <option value="">All prices</option>
-            {PRICE_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            aria-label="Filter by category"
-          >
-            <option value="">All categories</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={`${sortKey}-${sortOrder}`}
-            onChange={(e) => {
-              const [key, order] = e.target.value.split("-");
-              setSortKey(key);
-              setSortOrder(order);
-            }}
-            aria-label="Sort by"
-          >
-            {SORT_CHOICES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="view-toggle">
-            <button
-              type="button"
-              className={view === "grid" ? "active" : ""}
-              onClick={() => setView("grid")}
-              aria-label="Card view"
-              aria-pressed={view === "grid"}
+            <select
+              value={cuisine}
+              onChange={(e) => setCuisine(e.target.value)}
+              aria-label="Filter by cuisine"
             >
-              <FiGrid />
-            </button>
-            <button
-              type="button"
-              className={view === "list" ? "active" : ""}
-              onClick={() => setView("list")}
-              aria-label="List view"
-              aria-pressed={view === "list"}
+              <option value="">All cuisines</option>
+              {cuisineOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={priceRange}
+              onChange={(e) => setPriceRange(e.target.value)}
+              aria-label="Filter by price"
             >
-              <FiList />
-            </button>
+              <option value="">All prices</option>
+              {PRICE_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label="Filter by category"
+            >
+              <option value="">All categories</option>
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={`${sortKey}-${sortOrder}`}
+              onChange={(e) => {
+                const [key, order] = e.target.value.split("-");
+                setSortKey(key);
+                setSortOrder(order);
+              }}
+              aria-label="Sort by"
+            >
+              {SORT_CHOICES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+
+            <div className="view-toggle">
+              <button
+                type="button"
+                className={view === "grid" ? "active" : ""}
+                onClick={() => setView("grid")}
+                aria-label="Card view"
+                aria-pressed={view === "grid"}
+              >
+                <FiGrid />
+              </button>
+              <button
+                type="button"
+                className={view === "list" ? "active" : ""}
+                onClick={() => setView("list")}
+                aria-label="List view"
+                aria-pressed={view === "list"}
+              >
+                <FiList />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {isFetching && list.length === 0 ? (
           <Loading />

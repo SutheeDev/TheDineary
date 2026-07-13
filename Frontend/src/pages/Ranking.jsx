@@ -148,97 +148,99 @@ const Ranking = () => {
         <h1 className="heading">Ranking</h1>
         <p className="subtitle">Your restaurants ranked by final score</p>
 
-        <div className="toolbar">
-          <div className="search-box">
-            <FiSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search restaurants by name"
-            />
+        {restaurants.length > 0 && (
+          <div className="toolbar">
+            <div className="search-box">
+              <FiSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search by name"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search restaurants by name"
+              />
+            </div>
+
+            <select
+              value={cuisine}
+              onChange={(e) => setCuisine(e.target.value)}
+              aria-label="Filter by cuisine"
+            >
+              <option value="">All cuisines</option>
+              {cuisineOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={priceRange}
+              onChange={(e) => setPriceRange(e.target.value)}
+              aria-label="Filter by price"
+            >
+              <option value="">All prices</option>
+              {PRICE_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label="Filter by category"
+            >
+              <option value="">All categories</option>
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              aria-label="Filter by city"
+            >
+              <option value="">All cities</option>
+              {cityOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NO_VALUE}>Unspecified</option>
+            </select>
+
+            <select
+              value={topN}
+              onChange={(e) => setTopN(e.target.value)}
+              aria-label="Show top N"
+            >
+              <option value="all">Top: All</option>
+              {TOP_N_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  Top: {n}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              className="share-btn"
+              onClick={handleShare}
+              disabled={ranked.length === 0}
+            >
+              <FiShare2 />
+              Share
+            </button>
           </div>
-
-          <select
-            value={cuisine}
-            onChange={(e) => setCuisine(e.target.value)}
-            aria-label="Filter by cuisine"
-          >
-            <option value="">All cuisines</option>
-            {cuisineOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={priceRange}
-            onChange={(e) => setPriceRange(e.target.value)}
-            aria-label="Filter by price"
-          >
-            <option value="">All prices</option>
-            {PRICE_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            aria-label="Filter by category"
-          >
-            <option value="">All categories</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            aria-label="Filter by city"
-          >
-            <option value="">All cities</option>
-            {cityOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-            <option value={NO_VALUE}>Unspecified</option>
-          </select>
-
-          <select
-            value={topN}
-            onChange={(e) => setTopN(e.target.value)}
-            aria-label="Show top N"
-          >
-            <option value="all">Top: All</option>
-            {TOP_N_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                Top: {n}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            className="share-btn"
-            onClick={handleShare}
-            disabled={ranked.length === 0}
-          >
-            <FiShare2 />
-            Share
-          </button>
-        </div>
+        )}
 
         {restaurants.length === 0 ? (
           <div className="empty-state">
