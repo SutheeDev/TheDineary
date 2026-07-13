@@ -6,6 +6,7 @@ import { FiPlusCircle } from "react-icons/fi";
 import { FiMap } from "react-icons/fi";
 import { FiAward } from "react-icons/fi";
 import { FiCalendar } from "react-icons/fi";
+import { FiBarChart2 } from "react-icons/fi";
 
 const Sidebar = ({ isOpen, onClose }) => {
   return (
@@ -18,6 +19,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <NavigationIcon icon={<FiMap />} destination="/map" />
           <NavigationIcon icon={<FiAward />} destination="/ranking" />
           <NavigationIcon icon={<FiCalendar />} destination="/calendar" />
+          <NavigationIcon icon={<FiBarChart2 />} destination="/dashboard" />
         </SidebarContainer>
       </StyledAside>
     </>

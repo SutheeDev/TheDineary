@@ -10,6 +10,7 @@ import Register from "./Register";
 import RestaurantsMap from "./RestaurantsMap";
 import Ranking from "./Ranking";
 import Calendar from "./Calendar";
+import Dashboard from "./Dashboard";
 
 export {
   Home,
@@ -24,4 +25,5 @@ export {
   RestaurantsMap,
   Ranking,
   Calendar,
+  Dashboard,
 };
