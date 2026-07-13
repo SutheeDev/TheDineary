@@ -57,11 +57,17 @@ const restaurantSchema = new mongoose.Schema(
         "Other",
       ],
     },
-    image: {
-      type: String,
-      default:
-        "https://res.cloudinary.com/dnc7potxo/image/upload/v1738184597/DineDiary/placeholder-image.png",
-    },
+    // Ordered list of photos. images[0] is the cover shown on the card. Each
+    // holds the hosted url, its Cloudinary publicId (used to delete the file
+    // when an image is removed), and an optional caption. An empty array means
+    // no photo; the frontend falls back to a placeholder for display.
+    images: [
+      {
+        url: { type: String, required: true },
+        publicId: { type: String, default: "" },
+        caption: { type: String, default: "" },
+      },
+    ],
     location: {
       address: { type: String },
       lat: { type: Number },

@@ -14,6 +14,7 @@ import ProfileDropdown from "./ProfileDropdown";
 import PlaceSearch from "./PlaceSearch";
 import SelectDropdown from "./SelectDropdown";
 import Toast from "./Toast";
+import ImageCarousel from "./ImageCarousel";
 
 export {
   Card,
@@ -32,4 +33,5 @@ export {
   ProfileDropdown,
   PlaceSearch,
   SelectDropdown,
+  ImageCarousel,
 };

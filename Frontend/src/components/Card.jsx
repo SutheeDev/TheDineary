@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { FiTag, FiMapPin } from "react-icons/fi";
 import formatDate from "../utils/formatDate";
-import { getCuisineIcon } from "../utils/constants";
+import { getCuisineIcon, PLACEHOLDER_IMAGE } from "../utils/constants";
+import { FiImage } from "react-icons/fi";
 
 const Card = ({ restaurant, view = "grid" }) => {
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ const Card = ({ restaurant, view = "grid" }) => {
   const dateLabel = hasVisitDate ? "Visited" : "Added";
 
   const CuisineIcon = getCuisineIcon(restaurant.cuisine);
+
+  // Cover = first image; fall back to the legacy single `image` field, then the
+  // shared placeholder. Show a count badge when there is more than one photo.
+  const cover =
+    restaurant.images?.[0]?.url || restaurant.image || PLACEHOLDER_IMAGE;
+  const photoCount = restaurant.images?.length || 0;
 
   // Compact area label: the first two non-empty parts of the location, e.g.
   // "Austin, Texas" or "Tokyo, Japan".
@@ -62,7 +69,13 @@ const Card = ({ restaurant, view = "grid" }) => {
   return (
     <Wrapper onClick={handleClick} $view={view}>
       <div className="image">
-        <img src={restaurant.image} alt={restaurant.name} />
+        <img src={cover} alt={restaurant.name} />
+        {photoCount > 1 && (
+          <span className="photo-count">
+            <FiImage />
+            {photoCount}
+          </span>
+        )}
       </div>
       <div className="card-content">
         <div className="card-title">
@@ -105,6 +118,26 @@ const Wrapper = styled.div`
 
   .image {
     width: 100%;
+    position: relative;
+  }
+
+  .photo-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--btn-radius);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-family: var(--primary-font-light);
+    font-size: 12px;
+  }
+
+  .photo-count svg {
+    font-size: 12px;
   }
 
   img {
@@ -169,18 +202,20 @@ const Wrapper = styled.div`
     max-width: 100%;
     display: flex;
     align-items: stretch;
+    height: 130px;
 
     .image {
       width: 140px;
+      height: 130px;
       flex-shrink: 0;
     }
 
     img {
       min-width: 140px;
       max-width: 140px;
-      min-height: 100%;
-      max-height: none;
-      height: 100%;
+      min-height: 130px;
+      max-height: 130px;
+      height: 130px;
     }
 
     .card-content {

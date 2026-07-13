@@ -6,7 +6,6 @@ import { useGlobalContext } from "../App";
 import { useState } from "react";
 import apiClient from "../utils/apiClient";
 import { CUISINES } from "../utils/constants";
-import axios from "axios";
 
 // Import Icons
 import { TiStarFullOutline } from "react-icons/ti";
@@ -40,7 +39,20 @@ const UpdateRestaurant = () => {
   const cuisine = restaurant.cuisine;
   const review = restaurant.review;
   const priceRange = restaurant.priceRange;
-  const imageUrl = restaurant.image;
+
+  // Load the saved images, falling back to the legacy single `image` field for
+  // entries created before multi-image support.
+  const initialImages = (
+    restaurant.images?.length
+      ? restaurant.images
+      : restaurant.image
+      ? [{ url: restaurant.image }]
+      : []
+  ).map((img) => ({
+    url: img.url,
+    publicId: img.publicId || "",
+    caption: img.caption || "",
+  }));
 
   const initialState = {
     name: restaurant.name,
@@ -65,9 +77,7 @@ const UpdateRestaurant = () => {
     review: review || "",
     priceRange: priceRange || 0,
     category: restaurant.category || "",
-    image:
-      imageUrl ||
-      "https://res.cloudinary.com/dnc7potxo/image/upload/v1738184597/DineDiary/placeholder-image.png",
+    images: initialImages,
   };
 
   const [entry, setEntry] = useState(initialState);
@@ -125,44 +135,82 @@ const UpdateRestaurant = () => {
     setEntry({ ...entry, priceRange: priceSymbol });
   };
 
-  const presetName = import.meta.env.VITE_UPLOAD_PRESET_NAME;
-  const cloudName = import.meta.env.VITE_CLOUD_NAME;
-
-  const uploadImage = async (file) => {
+  const uploadImages = async (files) => {
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", presetName);
-    formData.append("folder", "DineDiary");
+    files.forEach((file) => formData.append("images", file));
 
+    // Upload through our backend, which signs the request with server-side
+    // Cloudinary credentials, then returns the hosted images ({ url, publicId }).
     try {
-      const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      const data = response.data;
-      return data.secure_url;
+      const response = await apiClient.post("/restaurants/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data.images;
     } catch (error) {
-      console.error(
-        "Error uploading image:",
-        error.response?.data || error.message
+      showToast(
+        error.response?.data?.msg || "Image upload failed. Please try again.",
+        "error"
       );
+      return [];
     }
   };
 
+  // Upload the picked files and append them to the list. New images always go to
+  // the end; the first image in the list is the cover.
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      return;
-    }
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    const imageUrl = await uploadImage(file);
-
-    if (imageUrl) {
-      setEntry({ ...entry, image: imageUrl });
-    } else {
-      return;
+    const uploaded = await uploadImages(files);
+    if (uploaded.length) {
+      setEntry((prev) => ({
+        ...prev,
+        images: [
+          ...prev.images,
+          ...uploaded.map((img) => ({ ...img, caption: "" })),
+        ],
+      }));
     }
+    // Reset so picking the same file again still fires onChange.
+    e.target.value = "";
+  };
+
+  const handleCaption = (index, value) => {
+    setEntry((prev) => ({
+      ...prev,
+      images: prev.images.map((img, i) =>
+        i === index ? { ...img, caption: value } : img
+      ),
+    }));
+  };
+
+  const removeImage = (index) => {
+    setEntry((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Swap an image with its neighbour to reorder the list.
+  const moveImage = (index, dir) => {
+    setEntry((prev) => {
+      const target = index + dir;
+      if (target < 0 || target >= prev.images.length) return prev;
+      const next = [...prev.images];
+      [next[index], next[target]] = [next[target], next[index]];
+      return { ...prev, images: next };
+    });
+  };
+
+  // Make an image the cover by moving it to the front of the list.
+  const setCover = (index) => {
+    setEntry((prev) => {
+      if (index === 0) return prev;
+      const next = [...prev.images];
+      const [picked] = next.splice(index, 1);
+      next.unshift(picked);
+      return { ...prev, images: next };
+    });
   };
 
   const validate = () => {
@@ -221,27 +269,82 @@ const UpdateRestaurant = () => {
           <Loading />
         ) : (
           <form onSubmit={updateRestaurant} noValidate>
-            {/* Image Upload */}
-            <FileUploadContainer
-              className="file-upload-container"
-              bgimg={entry.image}
-            >
-              <label htmlFor="image" className="image-upload-btn">
-                <BsUpload className="upload-btn" />
+            {/* Image Upload (multiple; first image is the cover) */}
+            <div className="image-upload-section">
+              <label htmlFor="image" className="add-images-btn">
+                <BsUpload />
+                <span>Add photos</span>
               </label>
               <input
                 className="image-upload"
                 type="file"
-                name="image"
+                accept="image/*"
+                name="images"
                 id="image"
+                multiple
                 onChange={(e) => handleFileChange(e)}
               />
-              {entry.image ? (
-                <span className="file-name">Change image</span>
-              ) : (
-                <span className="file-name">Add image</span>
+
+              {entry.images.length > 0 && (
+                <div className="image-list">
+                  {entry.images.map((img, index) => (
+                    <div
+                      className="image-item"
+                      key={img.publicId || img.url || index}
+                    >
+                      <div className="thumb">
+                        <img src={img.url} alt="" />
+                        {index === 0 && (
+                          <span className="cover-tag">Cover</span>
+                        )}
+                      </div>
+                      <div className="image-item-controls">
+                        <input
+                          type="text"
+                          className="caption-input"
+                          value={img.caption}
+                          onChange={(e) => handleCaption(index, e.target.value)}
+                          placeholder="Caption (optional)"
+                        />
+                        <div className="image-item-actions">
+                          <button
+                            type="button"
+                            onClick={() => moveImage(index, -1)}
+                            disabled={index === 0}
+                            aria-label="Move up"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveImage(index, 1)}
+                            disabled={index === entry.images.length - 1}
+                            aria-label="Move down"
+                          >
+                            ↓
+                          </button>
+                          {index !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setCover(index)}
+                            >
+                              Set as cover
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="remove-img-btn"
+                            onClick={() => removeImage(index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-            </FileUploadContainer>
+            </div>
 
             <div className="form-inputs">
               {/* Restaurant name */}
@@ -419,7 +522,7 @@ const CardsContainer = styled.div`
     gap: 55px;
   }
 
-  .image-upload,
+  .image-upload-section,
   .form-inputs {
     width: 50%;
   }
@@ -468,6 +571,111 @@ const CardsContainer = styled.div`
 
   #image {
     display: none;
+  }
+
+  .add-images-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--bg-secondary-color);
+    border-radius: var(--card-radius);
+    cursor: pointer;
+    color: var(--text-third-color);
+    font-size: 15px;
+  }
+
+  .add-images-btn svg {
+    font-size: 28px;
+    color: var(--upload-icon-color);
+  }
+
+  .image-list {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .image-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .image-item .thumb {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    border-radius: var(--form-radius);
+    overflow: hidden;
+  }
+
+  .image-item .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-tag {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    padding: 1px 6px;
+    border-radius: var(--btn-radius);
+    background: var(--orange);
+    color: #fff;
+    font-size: 11px;
+  }
+
+  .image-item-controls {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .caption-input {
+    width: 100%;
+    margin-bottom: 0;
+    border: none;
+    outline: none;
+    padding: 8px 10px;
+    border-radius: var(--form-radius);
+    background-color: var(--bg-secondary-color);
+  }
+
+  .image-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .image-item-actions button {
+    background-color: transparent;
+    border: 1px solid var(--bg-secondary-color);
+    color: var(--text-third-color);
+    padding: 4px 10px;
+    border-radius: var(--btn-radius);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .image-item-actions button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .image-item-actions .remove-img-btn:hover {
+    color: var(--orange);
+    border-color: var(--orange);
   }
 
   .btn-container {
@@ -536,77 +744,9 @@ const CardsContainer = styled.div`
       gap: 32px;
     }
 
-    .image-upload,
-    .form-inputs,
-    .file-upload-container {
+    .image-upload-section,
+    .form-inputs {
       width: 100%;
     }
-  }
-`;
-
-const FileUploadContainer = styled.div`
-  width: 50%;
-  aspect-ratio: 1 / 1;
-  background-color: var(--bg-secondary-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--card-radius);
-  position: relative;
-
-  background-image: ${(props) =>
-    props.bgimg ? `url(${props.bgimg})` : "none"};
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
-  cursor: pointer;
-  overflow: hidden;
-
-  /* Create overlay effect */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0);
-    z-index: 1;
-  }
-
-  &:hover::after {
-    background: var(--upload-overlay);
-  }
-
-  .image-upload-btn,
-  .file-name {
-    position: absolute;
-    z-index: 5;
-    opacity: 0;
-  }
-
-  &:hover .image-upload-btn,
-  &:hover .file-name {
-    opacity: 1;
-  }
-
-  .image-upload-btn {
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--upload-icon-color);
-    color: var(--bg-color);
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 26px;
-    margin-bottom: 20px;
-  }
-
-  .file-name {
-    top: 58%;
-    color: var(--bg-color);
-    width: 380px;
-    text-align: center;
-    word-break: break-word;
   }
 `;

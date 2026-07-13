@@ -66,6 +66,16 @@ const restaurantValidation = [
     .notEmpty()
     .withMessage("Dish name is required"),
   body("dishes.*.note").optional().isString().trim(),
+  body("images")
+    .optional()
+    .isArray({ max: 30 })
+    .withMessage("Too many images"),
+  body("images.*.url")
+    .trim()
+    .notEmpty()
+    .withMessage("Image url is required"),
+  body("images.*.publicId").optional().isString().trim(),
+  body("images.*.caption").optional().isString().trim(),
   body("priceRange")
     .optional()
     .isIn(["", "$", "$$", "$$$", "$$$$"])

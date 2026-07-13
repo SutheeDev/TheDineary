@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
 import { FiSearch, FiShare2, FiTag, FiMapPin } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
-import { getCuisineIcon } from "../utils/constants";
+import { getCuisineIcon, PLACEHOLDER_IMAGE } from "../utils/constants";
 
 import styled from "styled-components";
 
@@ -278,7 +278,10 @@ const Ranking = () => {
                 >
                   <span className="rank">{i + 1}</span>
                   <div className="thumb">
-                    <img src={r.image} alt={r.name} />
+                    <img
+                      src={r.images?.[0]?.url || r.image || PLACEHOLDER_IMAGE}
+                      alt={r.name}
+                    />
                   </div>
                   <span className="name">{r.name}</span>
                   <span className="cell">

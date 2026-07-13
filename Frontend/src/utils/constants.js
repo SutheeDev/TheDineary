@@ -13,6 +13,10 @@ import {
 } from "react-icons/fa";
 import { GiNoodles, GiCupcake, GiChopsticks, GiFullPizza } from "react-icons/gi";
 
+// Shown wherever a restaurant has no photo of its own.
+export const PLACEHOLDER_IMAGE =
+  "https://res.cloudinary.com/dnc7potxo/image/upload/v1738184597/DineDiary/placeholder-image.png";
+
 // Cuisine (or category) name -> an icon that fits it. Keys are lowercased on
 // lookup, so "Thai", "thai" and Google's "Thai" all match. Values are react-icon
 // components; render as <Icon />. Cuisines not listed fall back to a generic

@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   Alert,
   Loading,
+  ImageCarousel,
 } from "../components";
 
 // Import Icons
@@ -165,6 +166,15 @@ const Restaurant = () => {
   // Gentle nudge: list the optional fields this entry is still missing so they
   // can be filled in later. Photo is left out because every entry gets a
   // placeholder image by default, so "missing" cannot be told apart reliably.
+  // Prefer the new images array; fall back to the legacy single `image` field
+  // for entries saved before multi-image (an empty list makes the carousel show
+  // the placeholder on its own).
+  const displayImages = restaurant.images?.length
+    ? restaurant.images
+    : restaurant.image
+    ? [{ url: restaurant.image, caption: "" }]
+    : [];
+
   const missingFields = [];
   if (!restaurant.cuisine) missingFields.push("cuisine");
   if (!restaurant.category) missingFields.push("category");
@@ -197,7 +207,7 @@ const Restaurant = () => {
               </div>
               <div className="restaurant-content">
               <div className="restaurant-img">
-                <img src={restaurant.image} alt={restaurant.name} />
+                <ImageCarousel images={displayImages} alt={restaurant.name} />
               </div>
               <div className="restaurant-details">
                 <h2>{restaurant.name}</h2>
