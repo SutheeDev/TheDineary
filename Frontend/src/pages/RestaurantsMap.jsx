@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import styled from "styled-components";
 
 import { useGlobalContext } from "../App";
-import { Loading, PlaceSearch } from "../components/index";
+import { Loading, PlaceSearch, RestaurantSummary } from "../components/index";
 
 // Center on Bangkok when there is no user location or pins to frame.
 const DEFAULT_CENTER = [13.7563, 100.5018];
@@ -137,9 +137,16 @@ const RestaurantMarker = ({ res }) => {
       }}
     >
       <Popup>
-        <strong>{res.name}</strong>
-        {res.location.address && <div>{res.location.address}</div>}
-        <Link to={`/restaurant/${res._id}`}>View details</Link>
+        <div className="popup-card">
+          <RestaurantSummary restaurant={res}>
+            {res.location.address && (
+              <div className="popup-address">{res.location.address}</div>
+            )}
+          </RestaurantSummary>
+          <Link className="popup-link" to={`/restaurant/${res._id}`}>
+            View details
+          </Link>
+        </div>
       </Popup>
     </Marker>
   );
@@ -366,6 +373,25 @@ const MapWrapper = styled.div`
     background-color: var(--orange);
     color: #fff;
     cursor: pointer;
+  }
+
+  /* Logged-restaurant popup: the shared RestaurantSummary plus an address line
+     and the View details link. min-width keeps a photo-less popup from
+     collapsing too narrow. */
+  .popup-card {
+    min-width: 200px;
+
+    .popup-address {
+      font-family: var(--primary-font-light);
+      font-size: 12px;
+      color: var(--text-third-color);
+    }
+
+    .popup-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--orange);
+    }
   }
 
   /* Strip the white box Leaflet puts behind div-based markers so only the pin

@@ -1,15 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useGlobalContext } from "../App";
 import { useNavigate } from "react-router-dom";
-import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiPlus,
-  FiTag,
-  FiMapPin,
-} from "react-icons/fi";
-import { FaStar } from "react-icons/fa";
-import { getCuisineIcon } from "../utils/constants";
+import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
+import { RestaurantSummary } from "../components/index";
 
 import styled from "styled-components";
 
@@ -210,13 +203,6 @@ const Calendar = () => {
   const hoverCard = (() => {
     if (!hovered) return null;
     const { r, rect } = hovered;
-    const CuisineIcon = getCuisineIcon(r.cuisine);
-    const cover = r.images?.[0]?.url || r.image;
-    // First two non-empty parts of the location, matching the Card component.
-    const area = [r.location?.city, r.location?.state, r.location?.country]
-      .filter(Boolean)
-      .slice(0, 2)
-      .join(", ");
     // Anchor above the chip when there's vertical room, else below. Anchoring
     // by "bottom" for the above case means the card's height doesn't need to be
     // known in advance. Clamp left so the card never spills past the viewport.
@@ -235,44 +221,11 @@ const Calendar = () => {
         onMouseLeave={scheduleHide}
         onClick={() => navigate(`/restaurant/${r._id}`)}
       >
-        <div className="hover-head">
-          {cover && <img className="hover-thumb" src={cover} alt="" />}
-          <div className="hover-title">
-            <span className="hover-name">{r.name}</span>
-            {r.finalScore != null && (
-              <span className="hover-score">
-                <FaStar />
-                {r.finalScore}
-              </span>
-            )}
-          </div>
-        </div>
-        <span className={`hover-label ${r.kind}`}>
-          {r.kind === "visited" ? "Visited" : "Added"}
-        </span>
-        {(r.cuisine || r.priceRange || r.category || area) && (
-          <div className="hover-meta">
-            {r.cuisine && (
-              <span className="meta-item">
-                <CuisineIcon />
-                {r.cuisine}
-              </span>
-            )}
-            {r.priceRange && <span className="meta-item">{r.priceRange}</span>}
-            {r.category && (
-              <span className="meta-item">
-                <FiTag />
-                {r.category}
-              </span>
-            )}
-            {area && (
-              <span className="meta-item">
-                <FiMapPin />
-                {area}
-              </span>
-            )}
-          </div>
-        )}
+        <RestaurantSummary restaurant={r} includeArea>
+          <span className={`hover-label ${r.kind}`}>
+            {r.kind === "visited" ? "Visited" : "Added"}
+          </span>
+        </RestaurantSummary>
       </div>
     );
   })();
@@ -746,51 +699,6 @@ const Wrapper = styled.div`
     pointer-events: auto;
     cursor: pointer;
 
-    .hover-head {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-
-    .hover-thumb {
-      width: 48px;
-      height: 48px;
-      flex-shrink: 0;
-      object-fit: cover;
-      border-radius: var(--form-radius);
-    }
-
-    .hover-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .hover-name {
-      font-family: var(--primary-font-medium);
-      font-size: 15px;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .hover-score {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
-      font-size: 14px;
-
-      svg {
-        color: var(--text-secondary-color);
-      }
-    }
-
     .hover-label {
       display: inline-block;
       font-family: var(--primary-font-light);
@@ -799,30 +707,6 @@ const Wrapper = styled.div`
 
       &.visited {
         color: var(--orange);
-      }
-    }
-
-    .hover-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .meta-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-family: var(--primary-font-light);
-      font-size: 13px;
-      color: var(--gray-600);
-      background-color: var(--bg-secondary-color);
-      padding: 3px 9px;
-      border-radius: var(--btn-radius);
-
-      svg {
-        font-size: 13px;
-        flex-shrink: 0;
       }
     }
   }
