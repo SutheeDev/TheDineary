@@ -5,7 +5,8 @@
   "main": "server.mjs",
   "scripts": {
     "start": "node --watch server.mjs",
-    "seed": "node config/seed.mjs"
+    "seed": "node config/seed.mjs",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -26,5 +27,10 @@
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
     "otplib": "^12.0.1"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   }
 }

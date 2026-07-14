@@ -28,6 +28,9 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { msg: "Too many attempts. Please try again later." },
+  // Tests fire many auth requests in a row; skip the limit under Vitest so the
+  // shared per-IP counter does not turn into confusing 429 failures.
+  skip: () => process.env.NODE_ENV === "test",
 });
 
 router.post("/register", authLimiter, registerValidation, validate, register);

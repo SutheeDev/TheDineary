@@ -55,4 +55,10 @@ const start = async () => {
   }
 };
 
-start();
+// Tests import the configured app and drive it with an in-memory database, so
+// skip connecting to the real DB and listening when running under Vitest.
+if (process.env.NODE_ENV !== "test") {
+  start();
+}
+
+export { app };
