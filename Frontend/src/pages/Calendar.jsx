@@ -211,6 +211,7 @@ const Calendar = () => {
     if (!hovered) return null;
     const { r, rect } = hovered;
     const CuisineIcon = getCuisineIcon(r.cuisine);
+    const cover = r.images?.[0]?.url || r.image;
     // First two non-empty parts of the location, matching the Card component.
     const area = [r.location?.city, r.location?.state, r.location?.country]
       .filter(Boolean)
@@ -235,13 +236,16 @@ const Calendar = () => {
         onClick={() => navigate(`/restaurant/${r._id}`)}
       >
         <div className="hover-head">
-          <span className="hover-name">{r.name}</span>
-          {r.finalScore != null && (
-            <span className="hover-score">
-              <FaStar />
-              {r.finalScore}
-            </span>
-          )}
+          {cover && <img className="hover-thumb" src={cover} alt="" />}
+          <div className="hover-title">
+            <span className="hover-name">{r.name}</span>
+            {r.finalScore != null && (
+              <span className="hover-score">
+                <FaStar />
+                {r.finalScore}
+              </span>
+            )}
+          </div>
         </div>
         <span className={`hover-label ${r.kind}`}>
           {r.kind === "visited" ? "Visited" : "Added"}
@@ -745,14 +749,34 @@ const Wrapper = styled.div`
     .hover-head {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 10px;
       margin-bottom: 6px;
+    }
+
+    .hover-thumb {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      object-fit: cover;
+      border-radius: var(--form-radius);
+    }
+
+    .hover-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
     }
 
     .hover-name {
       font-family: var(--primary-font-medium);
       font-size: 15px;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .hover-score {
