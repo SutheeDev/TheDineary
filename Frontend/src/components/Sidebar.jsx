@@ -11,8 +11,8 @@ import { FiBarChart2 } from "react-icons/fi";
 const Sidebar = ({ isOpen, isResizing, onClose }) => {
   return (
     <>
-      <Backdrop isOpen={isOpen} onClick={onClose} />
-      <StyledAside isOpen={isOpen} isResizing={isResizing}>
+      <Backdrop $isOpen={isOpen} onClick={onClose} />
+      <StyledAside $isOpen={isOpen} $isResizing={isResizing}>
         <SidebarContainer>
           <NavigationIcon icon={<FiHome />} destination="/" label="Home" />
           <NavigationIcon icon={<FiMap />} destination="/map" label="Map" />
@@ -49,7 +49,7 @@ const Backdrop = styled.div`
   display: none;
 
   @media (max-width: 1024px) {
-    display: ${(props) => (props.isOpen ? "block" : "none")};
+    display: ${(props) => (props.$isOpen ? "block" : "none")};
     position: fixed;
     inset: 0;
     background: var(--overlay);
@@ -67,9 +67,9 @@ const StyledAside = styled.aside`
     background-color: var(--bg-color);
     z-index: 200;
     padding-top: var(--container-padding);
-    transform: translateX(${(props) => (props.isOpen ? "0" : "-100%")});
+    transform: translateX(${(props) => (props.$isOpen ? "0" : "-100%")});
     transition: ${(props) =>
-      props.isResizing ? "none" : "transform 0.3s ease"};
+      props.$isResizing ? "none" : "transform 0.3s ease"};
   }
 `;
 

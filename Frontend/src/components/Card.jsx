@@ -36,7 +36,7 @@ const Card = ({ restaurant, view = "grid" }) => {
     .slice(0, 2)
     .join(", ");
 
-  const handleClick = (e) => {
+  const handleClick = () => {
     navigate(`/restaurant/${restaurant._id}`);
   };
 

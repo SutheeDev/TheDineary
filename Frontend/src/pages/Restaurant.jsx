@@ -17,7 +17,6 @@ import {
 import { FaStar, FaStarHalfAlt } from "react-icons/fa";
 import { BiDollar } from "react-icons/bi";
 import { IoIosCloseCircleOutline } from "react-icons/io";
-import { FiEdit2 } from "react-icons/fi";
 import { GoKebabHorizontal } from "react-icons/go";
 import { FiCalendar } from "react-icons/fi";
 import { FiTag } from "react-icons/fi";

@@ -10,7 +10,6 @@ const Alert = () => {
     restaurants,
     setRestaurants,
     setIsLoading,
-    isLoading,
   } = useGlobalContext();
   const { id } = useParams();
 

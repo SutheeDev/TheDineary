@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const NavigationIcon = ({ icon, destination, label, variant }) => {
   return (
-    <Wrapper variant={variant}>
+    <Wrapper $variant={variant}>
       <StyledLink to={destination}>
         <IconBox>{icon}</IconBox>
         <Label>{label}</Label>
@@ -19,7 +19,7 @@ const Wrapper = styled.div`
 
   svg {
     color: ${(props) =>
-      props.variant === "action" ? "var(--orange)" : "var(--text-color)"};
+      props.$variant === "action" ? "var(--orange)" : "var(--text-color)"};
   }
 `;
 
