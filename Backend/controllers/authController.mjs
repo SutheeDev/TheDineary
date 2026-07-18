@@ -45,8 +45,8 @@ const register = async (req, res, next) => {
       throw new BadRequestError("An account with that email already exists");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword });
+    // Hashing happens in the User model's pre("save") hook.
+    const user = await User.create({ name, email, password });
 
     const token = signToken(user._id);
     res.cookie("token", token, cookieOptions);
@@ -61,8 +61,10 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
+    // A Google-only account has no password to compare against; treat it as a
+    // failed login rather than letting bcrypt throw on an undefined hash.
+    const user = await User.findOne({ email }).select("+password");
+    if (!user || !user.password) {
       throw new UnauthorizedError("Invalid email or password");
     }
 

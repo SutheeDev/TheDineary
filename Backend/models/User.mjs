@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -19,12 +20,15 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   // Required only for password accounts. Google accounts have no password.
+  // select: false keeps the hash out of query results unless a query opts in
+  // with .select("+password").
   password: {
     type: String,
     required: function () {
       return !this.googleId;
     },
     minLength: 6,
+    select: false,
   },
   googleId: {
     type: String,
@@ -50,6 +54,15 @@ const userSchema = new mongoose.Schema({
     lat: { type: Number },
     lng: { type: Number },
   },
+});
+
+// Hash on every save path, so no caller has to remember to. The isModified
+// guard matters: without it, saving a user for an unrelated reason (enabling
+// 2FA, linking Google) would re-hash the stored hash and break their login.
+// Note this does not run for findOneAndUpdate and other query-level updates.
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 export default mongoose.model("User", userSchema);

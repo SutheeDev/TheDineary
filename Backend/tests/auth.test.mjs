@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { authenticator } from "otplib";
 import { app } from "../server.mjs";
+import User from "../models/User.mjs";
 import { registerUser } from "./helpers.mjs";
 
 describe("POST /api/auth/register", () => {
@@ -102,6 +103,134 @@ describe("GET /api/auth/me (auth middleware)", () => {
     const res = await request(app).get("/api/auth/me").set("Cookie", cookie);
     expect(res.status).toBe(200);
     expect(res.body.email).toBe("me@example.com");
+  });
+});
+
+// Hashing lives in the User model's pre("save") hook. The risks are hashing
+// twice (login breaks immediately) and re-hashing an existing hash on an
+// unrelated save (login breaks later, which is harder to spot).
+describe("Password hashing (pre-save hook)", () => {
+  it("stores a hash, not the raw password", async () => {
+    const { payload } = await registerUser({ email: "hash@example.com" });
+
+    const stored = await User.findOne({ email: payload.email }).select(
+      "+password"
+    );
+    expect(stored.password).not.toBe(payload.password);
+    expect(stored.password.startsWith("$2")).toBe(true);
+  });
+
+  it("hashes once, so the registered password still logs in", async () => {
+    const { payload } = await registerUser({ email: "once@example.com" });
+
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: payload.email, password: payload.password });
+    expect(res.status).toBe(200);
+  });
+
+  it("does not re-hash when the user is saved for an unrelated reason", async () => {
+    const { cookie, payload } = await registerUser({
+      email: "rehash@example.com",
+    });
+
+    const before = await User.findOne({ email: payload.email }).select(
+      "+password"
+    );
+
+    // Enabling 2FA saves the user twice without touching the password.
+    const setupRes = await request(app)
+      .post("/api/auth/totp/setup")
+      .set("Cookie", cookie);
+    const secret = new URL(setupRes.body.otpauthUrl).searchParams.get("secret");
+    await request(app)
+      .post("/api/auth/totp/verify-setup")
+      .set("Cookie", cookie)
+      .send({ token: authenticator.generate(secret) });
+
+    const after = await User.findOne({ email: payload.email }).select(
+      "+password"
+    );
+    expect(after.password).toBe(before.password);
+  });
+});
+
+describe("POST /api/auth/login (Google-only account)", () => {
+  it("returns 401 rather than 500 when the account has no password", async () => {
+    await User.create({
+      name: "Google User",
+      email: "googleonly@example.com",
+      googleId: "google-sub-123",
+    });
+
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "googleonly@example.com", password: "anything123" });
+    expect(res.status).toBe(401);
+  });
+});
+
+// PATCH /api/user writes an explicit field whitelist, so sensitive fields sent
+// alongside the legitimate ones must be ignored rather than saved.
+describe("PATCH /api/user (field whitelist)", () => {
+  it("ignores a password sent in the body", async () => {
+    const { cookie, payload } = await registerUser({
+      email: "whitelist@example.com",
+    });
+
+    const res = await request(app)
+      .patch("/api/user")
+      .set("Cookie", cookie)
+      .send({
+        name: "Renamed",
+        email: payload.email,
+        password: "attacker-chosen",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe("Renamed");
+
+    // The original password still works, so the injected one was not written.
+    const loginRes = await request(app)
+      .post("/api/auth/login")
+      .send({ email: payload.email, password: payload.password });
+    expect(loginRes.status).toBe(200);
+  });
+
+  it("ignores totpEnabled sent in the body", async () => {
+    const { cookie, payload } = await registerUser({
+      email: "whitelist-totp@example.com",
+    });
+
+    // Turn 2FA on properly first.
+    const setupRes = await request(app)
+      .post("/api/auth/totp/setup")
+      .set("Cookie", cookie);
+    const secret = new URL(setupRes.body.otpauthUrl).searchParams.get("secret");
+    await request(app)
+      .post("/api/auth/totp/verify-setup")
+      .set("Cookie", cookie)
+      .send({ token: authenticator.generate(secret) });
+
+    const res = await request(app)
+      .patch("/api/user")
+      .set("Cookie", cookie)
+      .send({ name: "Still On", email: payload.email, totpEnabled: false });
+    expect(res.status).toBe(200);
+
+    // Login still demands the second factor.
+    const loginRes = await request(app)
+      .post("/api/auth/login")
+      .send({ email: payload.email, password: payload.password });
+    expect(loginRes.body.mfaRequired).toBe(true);
+  });
+
+  it("rejects an invalid email with 400, not 500", async () => {
+    const { cookie } = await registerUser({ email: "validation@example.com" });
+    const res = await request(app)
+      .patch("/api/user")
+      .set("Cookie", cookie)
+      .send({ name: "Fine", email: "not-an-email" });
+    expect(res.status).toBe(400);
   });
 });
 
