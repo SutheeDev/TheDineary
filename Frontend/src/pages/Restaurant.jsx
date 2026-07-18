@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useParams, useLocation, Navigate } from "react-router-dom";
 import { useGlobalContext } from "../App";
 import styled from "styled-components";
 import formatDate from "../utils/formatDate";
+import { useClickOutside } from "../utils/useClickOutside";
 import { useNavigate } from "react-router-dom";
 import {
   Navbar,
@@ -112,6 +113,10 @@ const formatMoney = (amount, currency) => {
 
 const Restaurant = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the kebab menu when clicking anywhere outside it, like the profile menu.
+  useClickOutside(menuRef, () => setIsDropdownOpen(false), isDropdownOpen);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,6 +125,13 @@ const Restaurant = () => {
 
   const { restaurants, isAlert, isLoading } = useGlobalContext();
   const restaurant = restaurants.find((res) => res._id === id);
+
+  // Guard against a missing entry: show the loader while the global list may
+  // still be loading, and once loading is done and it is truly not found, go
+  // back Home instead of crashing on the field reads below.
+  if (!restaurant) {
+    return isLoading ? <Loading /> : <Navigate to="/" replace />;
+  }
 
   // Visit date is optional: show the visit date when set, otherwise fall back to
   // the entry date (createdAt) and label it "Added" instead of "Visited".
@@ -184,184 +196,181 @@ const Restaurant = () => {
       {isAlert && <Alert />}
       <Navbar />
       <Content>
-        {isLoading ? (
-          <Loading />
-        ) : (
-          <div className="page-wrapper">
-            <div className="detail-card">
-              <div className="icons">
-                <IoIosCloseCircleOutline
-                  className="close-btn"
-                  onClick={() =>
-                    location.key !== "default" ? navigate(-1) : navigate("/")
-                  }
-                />
-                <div
-                  className="menu-btn-container"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                >
-                  <GoKebabHorizontal className="menu-btn" />
-                  {isDropdownOpen && <DropdownMenu />}
-                </div>
+        <div className="page-wrapper">
+          <div className="detail-card">
+            <div className="icons">
+              <IoIosCloseCircleOutline
+                className="close-btn"
+                onClick={() =>
+                  location.key !== "default" ? navigate(-1) : navigate("/")
+                }
+              />
+              <div
+                className="menu-btn-container"
+                ref={menuRef}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <GoKebabHorizontal className="menu-btn" />
+                {isDropdownOpen && <DropdownMenu />}
               </div>
-              <div className="restaurant-content">
-              <div className="restaurant-img">
-                <ImageCarousel images={displayImages} alt={restaurant.name} />
-              </div>
-              <div className="restaurant-details">
-                <h2>{restaurant.name}</h2>
-                <div className="date_cuisine">
-                  <div className="date">
-                    <FiCalendar />
-                    <p>
-                      {dateLabel}: {shownDate}
-                    </p>
-                  </div>
-                  {restaurant.cuisine && (
-                    <div className="cuisine">
-                      <CuisineIcon />
-                      <p>{restaurant.cuisine}</p>
-                    </div>
-                  )}
-                  {restaurant.category && (
-                    <div className="category">
-                      <FiTag />
-                      <p>{restaurant.category}</p>
-                    </div>
-                  )}
+            </div>
+            <div className="restaurant-content">
+            <div className="restaurant-img">
+              <ImageCarousel images={displayImages} alt={restaurant.name} />
+            </div>
+            <div className="restaurant-details">
+              <h2>{restaurant.name}</h2>
+              <div className="date_cuisine">
+                <div className="date">
+                  <FiCalendar />
+                  <p>
+                    {dateLabel}: {shownDate}
+                  </p>
                 </div>
-                <p className="review">{restaurant.review}</p>
-
-                {finalScore != null && (
-                  <div className="final-score">
-                    <span className="score-number">{finalScore}</span>
-                    <DisplayRangeEl
-                      Icon={FaStar}
-                      HalfIcon={FaStarHalfAlt}
-                      numOfEl="5"
-                      highlightEl={finalScore}
-                    />
+                {restaurant.cuisine && (
+                  <div className="cuisine">
+                    <CuisineIcon />
+                    <p>{restaurant.cuisine}</p>
                   </div>
                 )}
+                {restaurant.category && (
+                  <div className="category">
+                    <FiTag />
+                    <p>{restaurant.category}</p>
+                  </div>
+                )}
+              </div>
+              <p className="review">{restaurant.review}</p>
 
-                <div className="categories">
-                  {categories.map(({ key, label }) => (
-                    <div className="category" key={key}>
-                      <div className="category-header">
-                        <p>{label}</p>
-                        <DisplayRangeEl
-                          Icon={FaStar}
-                          HalfIcon={FaStarHalfAlt}
-                          numOfEl="5"
-                          highlightEl={ratings[key] || 0}
-                        />
-                      </div>
-                      {notes[key] && <p className="note">{notes[key]}</p>}
+              {finalScore != null && (
+                <div className="final-score">
+                  <span className="score-number">{finalScore}</span>
+                  <DisplayRangeEl
+                    Icon={FaStar}
+                    HalfIcon={FaStarHalfAlt}
+                    numOfEl="5"
+                    highlightEl={finalScore}
+                  />
+                </div>
+              )}
+
+              <div className="categories">
+                {categories.map(({ key, label }) => (
+                  <div className="category" key={key}>
+                    <div className="category-header">
+                      <p>{label}</p>
+                      <DisplayRangeEl
+                        Icon={FaStar}
+                        HalfIcon={FaStarHalfAlt}
+                        numOfEl="5"
+                        highlightEl={ratings[key] || 0}
+                      />
+                    </div>
+                    {notes[key] && <p className="note">{notes[key]}</p>}
+                  </div>
+                ))}
+              </div>
+
+              {restaurant.dishes?.length > 0 && (
+                <div className="dishes">
+                  <p className="dishes-title">Dishes</p>
+                  {restaurant.dishes.map((dish, index) => (
+                    <div className="dish" key={index}>
+                      <p className="dish-name">{dish.name}</p>
+                      {dish.note && <p className="note">{dish.note}</p>}
                     </div>
                   ))}
                 </div>
+              )}
 
-                {restaurant.dishes?.length > 0 && (
-                  <div className="dishes">
-                    <p className="dishes-title">Dishes</p>
-                    {restaurant.dishes.map((dish, index) => (
-                      <div className="dish" key={index}>
-                        <p className="dish-name">{dish.name}</p>
-                        {dish.note && <p className="note">{dish.note}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="rating_price">
-                  <div className="price">
-                    <p>Price</p>
-                    <DisplayRangeEl
-                      Icon={BiDollar}
-                      numOfEl="4"
-                      highlightEl={price}
-                    />
-                  </div>
+              <div className="rating_price">
+                <div className="price">
+                  <p>Price</p>
+                  <DisplayRangeEl
+                    Icon={BiDollar}
+                    numOfEl="4"
+                    highlightEl={price}
+                  />
                 </div>
+              </div>
 
-                {google && (
-                  <div className="google-info">
-                    {google.hours?.length > 0 && (
-                      <div className="google-section">
-                        <p className="google-title">Opening hours</p>
-                        <ul className="hours-list">
-                          {google.hours.map((line, index) => (
-                            <li key={index}>{line}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {google.website && (
-                      <div className="google-section">
-                        <p className="google-title">Website</p>
-                        <a
-                          className="website-link"
-                          href={google.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {google.website}
-                        </a>
-                      </div>
-                    )}
-
-                    {perPersonPrice && (
-                      <div className="google-section">
-                        <p className="google-title">Price per person</p>
-                        <p>{perPersonPrice}</p>
-                      </div>
-                    )}
-
-                    {featureGroups.length > 0 && (
-                      <div className="google-section">
-                        <p className="google-title">Features</p>
-                        {featureGroups.map((group) => (
-                          <div className="feature-group" key={group.title}>
-                            <p className="feature-group-title">{group.title}</p>
-                            <div className="feature-chips">
-                              {group.items.map((label) => (
-                                <span className="feature-chip" key={label}>
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+              {google && (
+                <div className="google-info">
+                  {google.hours?.length > 0 && (
+                    <div className="google-section">
+                      <p className="google-title">Opening hours</p>
+                      <ul className="hours-list">
+                        {google.hours.map((line, index) => (
+                          <li key={index}>{line}</li>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </ul>
+                    </div>
+                  )}
 
-                {missingFields.length > 0 && (
-                  <div className="complete-entry">
-                    <p className="complete-entry-title">Complete this entry</p>
-                    <div className="complete-entry-chips">
-                      {missingFields.map((field) => (
-                        <button
-                          key={field}
-                          type="button"
-                          className="complete-chip"
-                          onClick={() =>
-                            navigate(`/restaurant/update/${id}`)
-                          }
-                        >
-                          Add {field}
-                        </button>
+                  {google.website && (
+                    <div className="google-section">
+                      <p className="google-title">Website</p>
+                      <a
+                        className="website-link"
+                        href={google.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {google.website}
+                      </a>
+                    </div>
+                  )}
+
+                  {perPersonPrice && (
+                    <div className="google-section">
+                      <p className="google-title">Price per person</p>
+                      <p>{perPersonPrice}</p>
+                    </div>
+                  )}
+
+                  {featureGroups.length > 0 && (
+                    <div className="google-section">
+                      <p className="google-title">Features</p>
+                      {featureGroups.map((group) => (
+                        <div className="feature-group" key={group.title}>
+                          <p className="feature-group-title">{group.title}</p>
+                          <div className="feature-chips">
+                            {group.items.map((label) => (
+                              <span className="feature-chip" key={label}>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {missingFields.length > 0 && (
+                <div className="complete-entry">
+                  <p className="complete-entry-title">Complete this entry</p>
+                  <div className="complete-entry-chips">
+                    {missingFields.map((field) => (
+                      <button
+                        key={field}
+                        type="button"
+                        className="complete-chip"
+                        onClick={() =>
+                          navigate(`/restaurant/update/${id}`)
+                        }
+                      >
+                        Add {field}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-              </div>
+                </div>
+              )}
+            </div>
             </div>
           </div>
-        )}
+        </div>
       </Content>
     </main>
   );
@@ -590,6 +599,7 @@ const Content = styled.div`
 
   .menu-btn-container {
     position: relative;
+    z-index: 10;
   }
 
   .complete-entry {

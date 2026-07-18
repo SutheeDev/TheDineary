@@ -5,18 +5,9 @@ import { LuUtensilsCrossed } from "react-icons/lu";
 import { FiMapPin } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
 import { GiChopsticks } from "react-icons/gi";
-import { getCuisineIcon } from "../utils/constants";
+import { getCuisineIcon, CATEGORIES, PRICE_OPTIONS } from "../utils/constants";
 
 import styled from "styled-components";
-
-const CATEGORIES = [
-  { key: "food", label: "Food" },
-  { key: "service", label: "Service" },
-  { key: "ambience", label: "Ambience" },
-  { key: "value", label: "Value" },
-];
-
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
 
 // Show the most common cuisines individually, then roll the long tail into one
 // "Other" bar so the chart never grows unbounded.

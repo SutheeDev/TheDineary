@@ -14,22 +14,35 @@ const Sidebar = ({ isOpen, isResizing, onClose }) => {
       <Backdrop $isOpen={isOpen} onClick={onClose} />
       <StyledAside $isOpen={isOpen} $isResizing={isResizing}>
         <SidebarContainer>
-          <NavigationIcon icon={<FiHome />} destination="/" label="Home" />
-          <NavigationIcon icon={<FiMap />} destination="/map" label="Map" />
+          <NavigationIcon
+            icon={<FiHome />}
+            destination="/"
+            label="Home"
+            onClick={onClose}
+          />
+          <NavigationIcon
+            icon={<FiMap />}
+            destination="/map"
+            label="Map"
+            onClick={onClose}
+          />
           <NavigationIcon
             icon={<FiCalendar />}
             destination="/calendar"
             label="Calendar"
+            onClick={onClose}
           />
           <NavigationIcon
             icon={<FiAward />}
             destination="/ranking"
             label="Ranking"
+            onClick={onClose}
           />
           <NavigationIcon
             icon={<FiBarChart2 />}
             destination="/dashboard"
             label="Dashboard"
+            onClick={onClose}
           />
           <Separator />
           <NavigationIcon
@@ -37,6 +50,7 @@ const Sidebar = ({ isOpen, isResizing, onClose }) => {
             destination="/create"
             label="Create Entry"
             variant="action"
+            onClick={onClose}
           />
         </SidebarContainer>
       </StyledAside>

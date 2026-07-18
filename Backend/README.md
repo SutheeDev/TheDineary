@@ -65,10 +65,6 @@ _Note: This project uses Nodemon for hot reloading._
 - `PATCH /api/restaurants/:userId/:restaurantId` - Update a restaurant entry
 - `DELETE /api/restaurants/:userId/:restaurantId` - Delete a restaurant entry
 
-### 3. Seeding (dev only)
-
-Seeding runs as a local script, not an HTTP route. From `Backend/`, run `npm run seed` to wipe and reload the sample users and restaurants. Warning: this deletes all existing users and restaurants first.
-
 <br>
 
 ## Database Schema Overview <a name="schema"></a>
@@ -130,7 +126,6 @@ This project is still in progress. Future updates will include:
 
 ## Acknowledgments <a name="acknowledgments"></a>
 
-- Seed files were created to populate user and restaurant data.
 - Special thanks to [Unsplash](https://unsplash.com/) for food and restaurant images used in this project.
 - For Front End repository, follow this [Link](https://github.com/SutheeDev/PerScholasCapstoneFE)
 

@@ -1,10 +1,10 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 
-const NavigationIcon = ({ icon, destination, label, variant }) => {
+const NavigationIcon = ({ icon, destination, label, variant, onClick }) => {
   return (
     <Wrapper $variant={variant}>
-      <StyledLink to={destination}>
+      <StyledLink to={destination} onClick={onClick}>
         <IconBox>{icon}</IconBox>
         <Label>{label}</Label>
       </StyledLink>

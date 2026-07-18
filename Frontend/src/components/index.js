@@ -16,6 +16,7 @@ import SelectDropdown from "./SelectDropdown";
 import Toast from "./Toast";
 import ImageCarousel from "./ImageCarousel";
 import RestaurantSummary from "./RestaurantSummary";
+import RestaurantForm from "./RestaurantForm";
 
 export {
   Card,
@@ -36,4 +37,5 @@ export {
   SelectDropdown,
   ImageCarousel,
   RestaurantSummary,
+  RestaurantForm,
 };

@@ -5,7 +5,6 @@
   "main": "server.mjs",
   "scripts": {
     "start": "node --watch server.mjs",
-    "seed": "node config/seed.mjs",
     "test": "vitest run"
   },
   "keywords": [],

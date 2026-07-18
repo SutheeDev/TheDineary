@@ -7,10 +7,11 @@ import apiClient from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 
 const UpdateUser = () => {
-  const { user, setUser, isLoading, setIsLoading, showToast } =
-    useGlobalContext();
+  const { user, setUser, showToast } = useGlobalContext();
 
   const navigate = useNavigate();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const initialUser = {
     name: user.name,
@@ -72,7 +73,7 @@ const UpdateUser = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const response = await apiClient.patch("/user", userState);
@@ -85,7 +86,7 @@ const UpdateUser = () => {
         "error"
       );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -93,7 +94,7 @@ const UpdateUser = () => {
     <CardsContainer>
       <div className="page-wrapper">
         <h1 className="heading">Profile Update</h1>
-        {isLoading ? (
+        {isSubmitting ? (
           <Loading />
         ) : (
           <>

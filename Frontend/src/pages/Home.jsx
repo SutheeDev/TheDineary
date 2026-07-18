@@ -2,27 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, Loading } from "../components/index";
 import { useGlobalContext } from "../App";
 import apiClient from "../utils/apiClient";
+import { useDebounce } from "../utils/useDebounce";
+import { NO_VALUE, PRICE_OPTIONS, CATEGORY_OPTIONS } from "../utils/constants";
 import { Link } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
 import { FiSearch, FiGrid, FiList } from "react-icons/fi";
 
 import styled from "styled-components";
-
-// Sentinel a filter sends to fetch entries that have no value for that field, so
-// blank entries are findable. The backend maps it to "missing or empty".
-const NO_VALUE = "__none__";
-
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
-
-const CATEGORY_OPTIONS = [
-  "Restaurant",
-  "Coffee Shop",
-  "Bakery / Pastry",
-  "Bar",
-  "Dessert",
-  "Street Food",
-  "Other",
-];
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date" },
@@ -55,7 +41,7 @@ const Home = () => {
   const { user, restaurants } = useGlobalContext();
 
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [cuisine, setCuisine] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [category, setCategory] = useState("");
@@ -81,11 +67,6 @@ const Home = () => {
       .filter((c) => c && c.trim());
     return [...new Set(values)].sort();
   }, [restaurants]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   useEffect(() => {
     const fetchList = async () => {

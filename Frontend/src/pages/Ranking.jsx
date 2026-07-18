@@ -1,28 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useGlobalContext } from "../App";
 import { Link, useNavigate } from "react-router-dom";
 import { LuUtensilsCrossed } from "react-icons/lu";
 import { FiSearch, FiShare2, FiTag, FiMapPin } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
-import { getCuisineIcon, PLACEHOLDER_IMAGE } from "../utils/constants";
+import {
+  getCuisineIcon,
+  PLACEHOLDER_IMAGE,
+  NO_VALUE,
+  PRICE_OPTIONS,
+  CATEGORY_OPTIONS,
+} from "../utils/constants";
+import { useDebounce } from "../utils/useDebounce";
 
 import styled from "styled-components";
-
-// Sentinel a filter sends to match entries that have no value for that field, so
-// blank entries are still findable. Same convention as Home.
-const NO_VALUE = "__none__";
-
-const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
-
-const CATEGORY_OPTIONS = [
-  "Restaurant",
-  "Coffee Shop",
-  "Bakery / Pastry",
-  "Bar",
-  "Dessert",
-  "Street Food",
-  "Other",
-];
 
 const TOP_N_OPTIONS = [3, 5, 10, 25];
 
@@ -47,17 +38,12 @@ const Ranking = () => {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [cuisine, setCuisine] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [category, setCategory] = useState("");
   const [city, setCity] = useState("");
   const [topN, setTopN] = useState("all");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Dropdown options come from the full, unfiltered global list.
   const cuisineOptions = useMemo(() => {

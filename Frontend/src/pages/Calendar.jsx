@@ -124,9 +124,9 @@ const Calendar = () => {
     setExpandedDay(null);
   };
 
-  // Year dropdown options: earliest entry year (by effective date) up to the
-  // current year, plus the year currently in view so an arrow-reached year is
-  // never missing from the list.
+  // Year dropdown options: a fixed 5-year lookback ending at the current year,
+  // extended further back if an entry is older, and always including the year
+  // currently in view so an arrow-reached year is never missing from the list.
   const yearOptions = useMemo(() => {
     const current = new Date().getFullYear();
     let earliest = current;
@@ -136,7 +136,7 @@ const Calendar = () => {
       const y = new Date(raw).getFullYear();
       if (y < earliest) earliest = y;
     });
-    const start = Math.min(earliest, year);
+    const start = Math.min(earliest, current - 4, year);
     const end = Math.max(current, year);
     const out = [];
     for (let y = start; y <= end; y++) out.push(y);

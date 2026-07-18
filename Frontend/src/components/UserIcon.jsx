@@ -1,23 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { ProfileDropdown } from "../components/index";
 import { IoChevronDown } from "react-icons/io5";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import styled from "styled-components";
+import { useClickOutside } from "../utils/useClickOutside";
 
 const UserIcon = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const wrapperRef = useRef(null);
 
-  useEffect(() => {
-    if (!isProfileDropdownOpen) return;
-    const handleClickOutside = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsProfileDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isProfileDropdownOpen]);
+  useClickOutside(
+    wrapperRef,
+    () => setIsProfileDropdownOpen(false),
+    isProfileDropdownOpen
+  );
 
   return (
     <Wrapper

@@ -78,7 +78,6 @@ const App = () => {
         isAlert,
         setIsAlert,
         isLoading,
-        setIsLoading,
         logout,
         isAuthChecked,
         toasts,

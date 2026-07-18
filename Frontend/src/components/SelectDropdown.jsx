@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import styled from "styled-components";
+import { useClickOutside } from "../utils/useClickOutside";
 
 // Shared dropdown used by both Cuisine and Category so their open menus look the
 // same (a native <select>'s open list is OS-drawn and cannot be styled). Two modes:
@@ -31,15 +32,7 @@ const SelectDropdown = ({
   const items = shown.map((o) => ({ label: o, value: o }));
 
   // Close the menu when clicking anywhere outside this field.
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(wrapperRef, () => setIsOpen(false));
 
   const open = () => {
     setIsOpen(true);

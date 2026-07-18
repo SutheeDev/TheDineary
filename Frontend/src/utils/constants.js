@@ -90,3 +90,29 @@ export const CUISINES = [
   "Vegetarian",
   "Vietnamese",
 ];
+
+// Sentinel a filter sends to match entries that have no value for a field, so
+// blank entries stay findable. The backend maps it to "missing or empty".
+export const NO_VALUE = "__none__";
+
+// The four price tiers, low to high.
+export const PRICE_OPTIONS = ["$", "$$", "$$$", "$$$$"];
+
+// The fixed "type of place" tags (separate from cuisine).
+export const CATEGORY_OPTIONS = [
+  "Restaurant",
+  "Coffee Shop",
+  "Bakery / Pastry",
+  "Bar",
+  "Dessert",
+  "Street Food",
+  "Other",
+];
+
+// The four rating categories that average into the final score.
+export const CATEGORIES = [
+  { key: "food", label: "Food" },
+  { key: "service", label: "Service" },
+  { key: "ambience", label: "Ambience" },
+  { key: "value", label: "Value" },
+];

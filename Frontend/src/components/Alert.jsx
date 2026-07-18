@@ -1,32 +1,35 @@
 import styled from "styled-components";
 import { useGlobalContext } from "../App";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import apiClient from "../utils/apiClient";
 import { useParams, useNavigate } from "react-router-dom";
 
 const Alert = () => {
-  const {
-    setIsAlert,
-    restaurants,
-    setRestaurants,
-    setIsLoading,
-  } = useGlobalContext();
+  const { setIsAlert, restaurants, setRestaurants, showToast } =
+    useGlobalContext();
   const { id } = useParams();
 
   const navigate = useNavigate();
 
+  // Local delete state so this modal owns its own spinner instead of flipping a
+  // global flag. The modal stays open (showing "Deleting...") until the request
+  // finishes, then closes and navigates on success.
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = async () => {
-    setIsAlert(false);
-    setIsLoading(true);
+    setIsDeleting(true);
     try {
       const response = await apiClient.delete(`/restaurants/${id}`);
       const deletedRes = response.data;
       setRestaurants(restaurants.filter((res) => res._id !== deletedRes._id));
+      setIsAlert(false);
       navigate("/");
     } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoading(false);
+      showToast(
+        error.response?.data?.msg || "Couldn't delete. Please try again.",
+        "error"
+      );
+      setIsDeleting(false);
     }
   };
 
@@ -36,7 +39,7 @@ const Alert = () => {
     return () => {
       document.body.style.overflow = "auto";
     };
-  }, [restaurants]);
+  }, []);
 
   return (
     <Wrapper>
@@ -47,11 +50,19 @@ const Alert = () => {
           undone.
         </p>
         <div className="btn-container">
-          <button className="btn cancel-btn" onClick={() => setIsAlert(false)}>
+          <button
+            className="btn cancel-btn"
+            onClick={() => setIsAlert(false)}
+            disabled={isDeleting}
+          >
             Cancel
           </button>
-          <button className="btn delete-btn" onClick={handleDelete}>
-            Delete
+          <button
+            className="btn delete-btn"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
