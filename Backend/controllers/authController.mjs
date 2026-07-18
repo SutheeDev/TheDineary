@@ -172,7 +172,7 @@ const verifyTotp = async (req, res, next) => {
       throw new UnauthorizedError("Invalid authentication code");
     }
 
-    res.clearCookie("mfa_pending", cookieOptions);
+    res.clearCookie("mfa_pending", clearCookieOptions);
     const token = signToken(user._id);
     res.cookie("token", token, cookieOptions);
 
@@ -330,7 +330,7 @@ const resetPassword = async (req, res, next) => {
 };
 
 const logout = (req, res) => {
-  res.clearCookie("token", cookieOptions);
+  res.clearCookie("token", clearCookieOptions);
   res.status(200).json({ msg: "Logged out" });
 };
 
