@@ -7,6 +7,7 @@ export default defineConfig({
       NODE_ENV: "test",
       JWT_SECRET: "test-secret",
       JWT_EXPIRES_IN: "1h",
+      CLIENT_URL: "http://localhost:5173",
     },
     // Boots a fresh in-memory MongoDB and wires up the per-test cleanup.
     setupFiles: ["./tests/setup.mjs"],

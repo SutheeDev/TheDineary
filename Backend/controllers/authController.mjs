@@ -1,8 +1,10 @@
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authenticator } from "otplib";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.mjs";
+import { sendPasswordResetEmail } from "../utils/sendEmail.mjs";
 import { BadRequestError, UnauthorizedError } from "../errors/customErrors.mjs";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -13,6 +15,10 @@ const cookieOptions = {
   sameSite: "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
+
+// clearCookie must match the cookie's original attributes to remove it, but
+// Express 5 rejects maxAge here, so it is dropped.
+const { maxAge, ...clearCookieOptions } = cookieOptions;
 
 // Short-lived cookie that marks a half-authenticated session waiting for a TOTP code.
 const mfaPendingCookieOptions = {
@@ -242,6 +248,87 @@ const disableTotp = async (req, res, next) => {
   }
 };
 
+const hashResetToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+// Step 1 of password reset: email a single-use link. The response is identical
+// whether or not the account exists, so the endpoint cannot be used to find out
+// who has a Dineary account.
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const genericResponse = {
+      msg: "If that email is registered, a reset link is on its way.",
+    };
+
+    const user = await User.findOne({ email }).select("+password");
+
+    // Google-only accounts have no password to reset; sending them a link would
+    // let them set one and bypass Google sign-in.
+    if (!user || !user.password) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl,
+      });
+    } catch (err) {
+      // Do not leave a live token behind on an email that never arrived.
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      throw err;
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Step 2: exchange the emailed token for a new password.
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    const user = await User.findOne({
+      resetPasswordToken: hashResetToken(token),
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new BadRequestError("This reset link is invalid or has expired");
+    }
+
+    // Hashing happens in the User model's pre("save") hook. Clearing the token
+    // is what makes the link single-use.
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    // Anyone resetting a password should end up signed out everywhere, so the
+    // session cookie on this browser goes too.
+    res.clearCookie("token", clearCookieOptions);
+
+    res.status(200).json({
+      msg: "Password updated. You can now sign in with your new password.",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const logout = (req, res) => {
   res.clearCookie("token", cookieOptions);
   res.status(200).json({ msg: "Logged out" });
@@ -264,6 +351,8 @@ export {
   setupTotp,
   verifySetup,
   disableTotp,
+  forgotPassword,
+  resetPassword,
   logout,
   getMe,
 };

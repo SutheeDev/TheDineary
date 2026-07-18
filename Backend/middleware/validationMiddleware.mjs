@@ -139,10 +139,23 @@ const restaurantValidation = [
   body("google.attributes").optional().isObject(),
 ];
 
+const forgotPasswordValidation = [
+  body("email").trim().isEmail().withMessage("Please provide a valid email"),
+];
+
+const resetPasswordValidation = [
+  body("token").notEmpty().withMessage("Reset token is missing"),
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
+];
+
 export {
   validate,
   registerValidation,
   loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
   userValidation,
   restaurantValidation,
 };

@@ -42,6 +42,18 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Password reset. Only the SHA-256 hash of the token is stored: the raw token
+  // lives in the emailed link, so a leaked database cannot be used to reset
+  // anyone's password. select: false for the same deny-by-default reason as the
+  // password hash.
+  resetPasswordToken: {
+    type: String,
+    select: false,
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false,
+  },
   // Saved home address used as the map's starting point when the browser cannot
   // provide a live location. Same shape as a restaurant's location.
   homeLocation: {

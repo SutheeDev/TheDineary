@@ -157,9 +157,8 @@ const Login = () => {
                   </div>
                 </div>
 
-                {/* Forgot password flow is not implemented yet (UI only). */}
                 <p className="forgot-link">
-                  <Link to="/login">Forgot password?</Link>
+                  <Link to="/forgot-password">Forgot password?</Link>
                 </p>
 
                 <button

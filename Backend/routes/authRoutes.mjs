@@ -8,6 +8,8 @@ import {
   setupTotp,
   verifySetup,
   disableTotp,
+  forgotPassword,
+  resetPassword,
   logout,
   getMe,
 } from "../controllers/authController.mjs";
@@ -16,6 +18,8 @@ import {
   validate,
   registerValidation,
   loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 } from "../middleware/validationMiddleware.mjs";
 
 const router = express.Router();
@@ -36,6 +40,20 @@ const authLimiter = rateLimit({
 router.post("/register", authLimiter, registerValidation, validate, register);
 router.post("/login", authLimiter, loginValidation, validate, login);
 router.post("/google", googleLogin);
+router.post(
+  "/forgot-password",
+  authLimiter,
+  forgotPasswordValidation,
+  validate,
+  forgotPassword
+);
+router.post(
+  "/reset-password",
+  authLimiter,
+  resetPasswordValidation,
+  validate,
+  resetPassword
+);
 router.post("/totp/verify", authLimiter, verifyTotp);
 router.post("/totp/setup", authMiddleware, setupTotp);
 router.post("/totp/verify-setup", authMiddleware, verifySetup);

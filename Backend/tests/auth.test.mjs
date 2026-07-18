@@ -1,9 +1,26 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import { authenticator } from "otplib";
 import { app } from "../server.mjs";
 import User from "../models/User.mjs";
 import { registerUser } from "./helpers.mjs";
+import { sendPasswordResetEmail } from "../utils/sendEmail.mjs";
+
+// The raw reset token only ever exists inside the emailed link, so the tests
+// read it back out of the mocked send call.
+vi.mock("../utils/sendEmail.mjs", () => ({
+  sendEmail: vi.fn(),
+  sendPasswordResetEmail: vi.fn(),
+}));
+
+const requestReset = async (email) => {
+  const res = await request(app)
+    .post("/api/auth/forgot-password")
+    .send({ email });
+  const call = sendPasswordResetEmail.mock.calls.at(-1);
+  const token = call ? call[0].resetUrl.split("/").pop() : null;
+  return { res, token };
+};
 
 describe("POST /api/auth/register", () => {
   it("creates a user, sets a cookie, and never returns the password", async () => {
@@ -282,5 +299,110 @@ describe("Two-factor (TOTP) flow", () => {
       .send({ token: authenticator.generate(secret) });
     expect(goodCode.status).toBe(200);
     expect(goodCode.headers["set-cookie"].join(";")).toContain("token=");
+  });
+});
+
+describe("password reset", () => {
+  beforeEach(() => {
+    sendPasswordResetEmail.mockClear();
+  });
+
+  it("emails a link and stores only the hashed token", async () => {
+    await registerUser({ email: "reset@example.com" });
+
+    const { res, token } = await requestReset("reset@example.com");
+
+    expect(res.status).toBe(200);
+    expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+    expect(token).toBeTruthy();
+
+    const user = await User.findOne({ email: "reset@example.com" }).select(
+      "+resetPasswordToken +resetPasswordExpires"
+    );
+    expect(user.resetPasswordToken).not.toBe(token);
+    expect(user.resetPasswordExpires.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("returns the same response for an unknown email and sends nothing", async () => {
+    const { res } = await requestReset("nobody@example.com");
+
+    expect(res.status).toBe(200);
+    expect(res.body.msg).toMatch(/if that email is registered/i);
+    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it("does not issue a token for a Google-only account", async () => {
+    await User.create({
+      name: "Gina",
+      email: "google@example.com",
+      googleId: "google-123",
+    });
+
+    const { res } = await requestReset("google@example.com");
+
+    expect(res.status).toBe(200);
+    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it("sets the new password, and the old one stops working", async () => {
+    await registerUser({ email: "swap@example.com", password: "oldpassword" });
+    const { token } = await requestReset("swap@example.com");
+
+    const resetRes = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(resetRes.status).toBe(200);
+
+    const oldLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "swap@example.com", password: "oldpassword" });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "swap@example.com", password: "newpassword" });
+    expect(newLogin.status).toBe(200);
+    expect(newLogin.headers["set-cookie"].join(";")).toContain("token=");
+  });
+
+  it("rejects a token that has already been used", async () => {
+    await registerUser({ email: "once@example.com" });
+    const { token } = await requestReset("once@example.com");
+
+    const first = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(first.status).toBe(200);
+
+    const second = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "anotherpassword" });
+    expect(second.status).toBe(400);
+    expect(second.body.msg).toMatch(/invalid or has expired/i);
+  });
+
+  it("rejects an expired token", async () => {
+    await registerUser({ email: "expired@example.com" });
+    const { token } = await requestReset("expired@example.com");
+
+    await User.updateOne(
+      { email: "expired@example.com" },
+      { resetPasswordExpires: Date.now() - 1000 }
+    );
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(res.status).toBe(400);
+    expect(res.body.msg).toMatch(/invalid or has expired/i);
+  });
+
+  it("rejects a made-up token", async () => {
+    await registerUser({ email: "fake@example.com" });
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token: "not-a-real-token", password: "newpassword" });
+    expect(res.status).toBe(400);
   });
 });
