@@ -11,7 +11,14 @@ import {
   DashboardLayout,
   Login,
   Register,
+  ForgotPassword,
+  ResetPassword,
+  RestaurantsMap,
+  Ranking,
+  Calendar,
+  Dashboard,
 } from "./pages/index";
+import { Toast } from "./components";
 import apiClient from "./utils/apiClient";
 
 const globalContext = createContext();
@@ -22,6 +29,17 @@ const App = () => {
   const [isAlert, setIsAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const showToast = (message, type = "info") => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 4000);
+  };
 
   const logout = async () => {
     try {
@@ -62,18 +80,27 @@ const App = () => {
         isAlert,
         setIsAlert,
         isLoading,
-        setIsLoading,
         logout,
         isAuthChecked,
+        toasts,
+        showToast,
+        removeToast,
       }}
     >
+      <Toast />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<Home />} />
             <Route path="/create" element={<CreateRestaurant />} />
+            <Route path="/map" element={<RestaurantsMap />} />
+            <Route path="/ranking" element={<Ranking />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route
               path="/restaurant/update/:id"
               element={<UpdateRestaurant />}

@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import {
   register,
   login,
@@ -7,17 +8,53 @@ import {
   setupTotp,
   verifySetup,
   disableTotp,
+  forgotPassword,
+  resetPassword,
   logout,
   getMe,
 } from "../controllers/authController.mjs";
 import authMiddleware from "../middleware/authMiddleware.mjs";
+import {
+  validate,
+  registerValidation,
+  loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+} from "../middleware/validationMiddleware.mjs";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+// Limit brute-force attempts on routes that accept a guessable secret
+// (password or 6-digit TOTP code): 10 requests per 15 minutes per IP.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { msg: "Too many attempts. Please try again later." },
+  // Tests fire many auth requests in a row; skip the limit under Vitest so the
+  // shared per-IP counter does not turn into confusing 429 failures.
+  skip: () => process.env.NODE_ENV === "test",
+});
+
+router.post("/register", authLimiter, registerValidation, validate, register);
+router.post("/login", authLimiter, loginValidation, validate, login);
 router.post("/google", googleLogin);
-router.post("/totp/verify", verifyTotp);
+router.post(
+  "/forgot-password",
+  authLimiter,
+  forgotPasswordValidation,
+  validate,
+  forgotPassword
+);
+router.post(
+  "/reset-password",
+  authLimiter,
+  resetPasswordValidation,
+  validate,
+  resetPassword
+);
+router.post("/totp/verify", authLimiter, verifyTotp);
 router.post("/totp/setup", authMiddleware, setupTotp);
 router.post("/totp/verify-setup", authMiddleware, verifySetup);
 router.post("/totp/disable", authMiddleware, disableTotp);

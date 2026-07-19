@@ -26,9 +26,10 @@
   --orange: #ff5252;
   --black: #000000;
   --white: #ffffff;
+  --blush: #fff1ee;
   --gray-200: #f2f2f2;
   --gray-400: #a0abbb;
-  --cream: #fffbda;
+  --gray-600: #6b7280;
   --overlay: #000000bc;
   --upload-overlay: #00000071;
 
@@ -38,7 +39,7 @@
   --text-secondary-color: var(--orange);
   --text-third-color: var(--gray-400);
   --upload-icon-color: var(--gray-400);
-  --bg-third-color: var(--cream);
+  --bg-third-color: var(--blush);
 
   /* Padding */
   --container-padding: 48px;

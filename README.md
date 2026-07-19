@@ -97,14 +97,21 @@ MONGO_URI=your-mongodb-connection-string
 NODE_ENV=development
 JWT_SECRET=your-jwt-signing-secret
 JWT_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:5173
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
+
+`CLIENT_URL` is the address of the frontend the backend allows requests from (CORS). Set it to your deployed frontend URL in production. The three `CLOUDINARY_*` values are the server-side credentials used to upload images; they must stay on the backend and never appear in `Frontend/.env`.
 
 **Frontend** -- create `Frontend/.env`:
 
 ```
-VITE_CLOUD_NAME=your-cloudinary-cloud-name
-VITE_UPLOAD_PRESET_NAME=your-cloudinary-unsigned-preset
+VITE_API_URL=http://localhost:5000/api
 ```
+
+`VITE_API_URL` is the address of the backend the frontend talks to. Set it to your deployed backend URL in production.
 
 ## Running the App
 
@@ -129,13 +136,6 @@ cd Frontend
 npm run dev       # dev server (localhost:5173)
 npm run build     # production build
 npm run lint      # ESLint
-```
-
-**Seed data** (dev only):
-
-```
-GET /api/seed/users
-GET /api/seed/restaurants
 ```
 
 ## API Routes
@@ -167,11 +167,6 @@ All restaurant routes are protected.
 - `GET /api/restaurants/:id` -- get a single entry
 - `PATCH /api/restaurants/:id` -- update an entry
 - `DELETE /api/restaurants/:id` -- delete an entry
-
-### Seed (dev only)
-
-- `GET /api/seed/users` -- populate user data
-- `GET /api/seed/restaurants` -- populate restaurant data
 
 ## Database Schema
 

@@ -1,0 +1,408 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Link, useNavigate } from "react-router-dom";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import styled from "styled-components";
+
+import { useGlobalContext } from "../App";
+import { Loading, PlaceSearch, RestaurantSummary } from "../components/index";
+
+// Center on Bangkok when there is no user location or pins to frame.
+const DEFAULT_CENTER = [13.7563, 100.5018];
+const DEFAULT_ZOOM = 14;
+
+// Custom pin drawn as inline SVG so there is no image file to load (Leaflet's
+// default PNG marker breaks under Vite's bundler). Logged places use the app's
+// orange; a searched-but-not-yet-added result uses blue so it stands apart.
+const makePin = (color) =>
+  L.divIcon({
+    className: "restaurant-pin",
+    html: `<svg width="28" height="40" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}"/>
+    <circle cx="12" cy="12" r="5" fill="#ffffff"/>
+  </svg>`,
+    iconSize: [28, 40],
+    iconAnchor: [14, 40],
+    popupAnchor: [0, -36],
+  });
+
+const restaurantIcon = makePin("#ff5252");
+const resultIcon = makePin("#2d7ff9");
+const userIcon = makePin("#2ecc71");
+
+// Decide where the map should sit. Live location wins when it arrives. Failing
+// that, a saved home address is used right away so the map is not stuck waiting
+// (this is the reliable path for devices that never resolve a live fix). Only
+// when there is neither a live fix nor a saved home do we fall back to framing
+// all pins, and only after geolocation has actually failed rather than while it
+// is still pending.
+const RecenterMap = ({ userLocation, homeLocation, locationStatus, points }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (userLocation) {
+      map.setView(userLocation, DEFAULT_ZOOM);
+    } else if (homeLocation) {
+      map.setView(homeLocation, DEFAULT_ZOOM);
+    } else if (locationStatus === "failed" && points.length > 0) {
+      map.fitBounds(points, { padding: [50, 50], maxZoom: 16 });
+    }
+  }, [userLocation, homeLocation, locationStatus, points, map]);
+  return null;
+};
+
+// Pan to a freshly searched result so the temporary pin is in view.
+const FlyToResult = ({ position }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.setView(position, DEFAULT_ZOOM);
+  }, [position, map]);
+  return null;
+};
+
+// The temporary blue pin for a search result, with a popup that opens on its
+// own and offers to add the place.
+const ResultMarker = ({ result, onAdd }) => {
+  const markerRef = useRef(null);
+  useEffect(() => {
+    if (markerRef.current) markerRef.current.openPopup();
+  }, [result]);
+  return (
+    <Marker
+      ref={markerRef}
+      position={[result.location.lat, result.location.lng]}
+      icon={resultIcon}
+    >
+      <Popup>
+        <strong>{result.name}</strong>
+        {result.location.address && <div>{result.location.address}</div>}
+        <button type="button" className="add-result-btn" onClick={onAdd}>
+          Add this restaurant
+        </button>
+      </Popup>
+    </Marker>
+  );
+};
+
+// A logged restaurant's pin. The popup opens on hover instead of click. A short
+// close delay lets the mouse cross the gap from the pin to the popup without it
+// snapping shut, and hovering the popup itself keeps it open long enough to
+// click "View details".
+const RestaurantMarker = ({ res }) => {
+  const markerRef = useRef(null);
+  const closeTimer = useRef(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => {
+      markerRef.current?.closePopup();
+    }, 400);
+  };
+
+  useEffect(() => () => cancelClose(), []);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[res.location.lat, res.location.lng]}
+      icon={restaurantIcon}
+      eventHandlers={{
+        mouseover: () => {
+          cancelClose();
+          markerRef.current?.openPopup();
+        },
+        mouseout: scheduleClose,
+        // Attach the hover listeners to the whole popup box (padding, close
+        // button and tip included) rather than just the inner content, so
+        // moving near an edge does not count as leaving the popup.
+        popupopen: (e) => {
+          const el = e.popup.getElement();
+          if (!el) return;
+          el.addEventListener("mouseenter", cancelClose);
+          el.addEventListener("mouseleave", scheduleClose);
+        },
+        popupclose: (e) => {
+          const el = e.popup.getElement();
+          if (!el) return;
+          el.removeEventListener("mouseenter", cancelClose);
+          el.removeEventListener("mouseleave", scheduleClose);
+        },
+      }}
+    >
+      <Popup>
+        <div className="popup-card">
+          <RestaurantSummary restaurant={res}>
+            {res.location.address && (
+              <div className="popup-address">{res.location.address}</div>
+            )}
+          </RestaurantSummary>
+          <Link className="popup-link" to={`/restaurant/${res._id}`}>
+            View details
+          </Link>
+        </div>
+      </Popup>
+    </Marker>
+  );
+};
+
+const RestaurantsMap = () => {
+  const { restaurants, isLoading, user } = useGlobalContext();
+  const [userLocation, setUserLocation] = useState(null);
+  // "pending" while we wait for the browser's location; "ok" once we have it;
+  // "failed" if it is denied, unavailable, or times out. The all-pins fallback
+  // only kicks in on "failed".
+  const [locationStatus, setLocationStatus] = useState("pending");
+  const [result, setResult] = useState(null);
+  const navigate = useNavigate();
+
+  const searchEnabled = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+
+  // A picked search result drops a temporary pin. Ignore results with no
+  // coordinates since there would be nothing to place on the map.
+  const handleSearchSelect = (place) => {
+    if (typeof place.location?.lat !== "number") return;
+    setResult(place);
+  };
+
+  // Hand the picked place to the create form via router state so it opens
+  // pre-filled; the form returns here after saving.
+  const handleAdd = () => {
+    navigate("/create", { state: { prefill: result, from: "map" } });
+  };
+
+  const mapped = useMemo(
+    () =>
+      restaurants.filter(
+        (res) =>
+          typeof res.location?.lat === "number" &&
+          typeof res.location?.lng === "number"
+      ),
+    [restaurants]
+  );
+
+  const points = useMemo(
+    () => mapped.map((res) => [res.location.lat, res.location.lng]),
+    [mapped]
+  );
+
+  // The user's saved home address, used as the map's fallback start when there
+  // is no live location. Null unless both coordinates are present.
+  const homeLocation = useMemo(() => {
+    const home = user?.homeLocation;
+    if (typeof home?.lat === "number" && typeof home?.lng === "number") {
+      return [home.lat, home.lng];
+    }
+    return null;
+  }, [user]);
+
+  // Where to drop the "you" pin: the live fix if we have one, otherwise the
+  // saved home. Null when there is neither, so no pin renders.
+  const userMarkerPosition = userLocation || homeLocation;
+
+  // Ask the browser for the user's location so the map opens near them instead
+  // of zooming out to cover far-apart pins. macOS CoreLocation often reports a
+  // transient kCLErrorLocationUnknown (error code 2) on the first attempt and
+  // then succeeds a moment later, so we keep the request open with
+  // watchPosition and take the first good fix rather than giving up on the
+  // first error. A permission denial is final; any other outcome just waits
+  // until an overall deadline, after which we fall back to framing all pins.
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus("failed");
+      return;
+    }
+
+    let settled = false;
+    let watchId;
+    let deadlineId;
+    const finish = (status) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadlineId);
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+      setLocationStatus(status);
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        finish("ok");
+      },
+      (err) => {
+        console.warn("Map geolocation error:", err.code, err.message);
+        if (err.code === err.PERMISSION_DENIED) finish("failed");
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+    );
+
+    // Stop waiting after 20s of transient failures and fall back to all pins.
+    deadlineId = setTimeout(() => finish("failed"), 20000);
+
+    return () => {
+      settled = true;
+      clearTimeout(deadlineId);
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
+
+  return (
+    <MapWrapper>
+      <div className="page-wrapper">
+        <h1 className="heading">Map</h1>
+        <p className="subtitle">Where you have dined</p>
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <>
+            {mapped.length === 0 && (
+              <div className="empty-hint">
+                No restaurants mapped yet.{" "}
+                <Link to="/create">Add a restaurant</Link> to see it here.
+              </div>
+            )}
+            <div className="map-box">
+              {searchEnabled && (
+                <PlaceSearch
+                  className="map-search"
+                  onSelect={handleSearchSelect}
+                />
+              )}
+              <MapContainer
+                center={DEFAULT_CENTER}
+                zoom={DEFAULT_ZOOM}
+                scrollWheelZoom={true}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                />
+                <RecenterMap
+                  userLocation={userLocation}
+                  homeLocation={homeLocation}
+                  locationStatus={locationStatus}
+                  points={points}
+                />
+                {result && (
+                  <>
+                    <FlyToResult
+                      position={[result.location.lat, result.location.lng]}
+                    />
+                    <ResultMarker result={result} onAdd={handleAdd} />
+                  </>
+                )}
+                {userMarkerPosition && (
+                  <Marker position={userMarkerPosition} icon={userIcon}>
+                    <Popup>{userLocation ? "You are here" : "Home"}</Popup>
+                  </Marker>
+                )}
+                {mapped.map((res) => (
+                  <RestaurantMarker key={res._id} res={res} />
+                ))}
+              </MapContainer>
+            </div>
+          </>
+        )}
+      </div>
+    </MapWrapper>
+  );
+};
+export default RestaurantsMap;
+
+const MapWrapper = styled.div`
+  padding-right: var(--container-padding);
+  padding-bottom: var(--container-padding);
+  width: 100%;
+
+  .heading {
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--text-third-color);
+    margin-bottom: 50px;
+  }
+
+  .empty-hint {
+    margin-bottom: 16px;
+    color: var(--text-third-color);
+
+    a {
+      color: var(--orange);
+    }
+  }
+
+  .map-box {
+    position: relative;
+    height: calc(100vh - 340px);
+    min-height: 400px;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    /* Contain Leaflet's high internal z-index (its controls sit at 1000) so the
+       map cannot render on top of the mobile sidebar's dark backdrop. */
+    isolation: isolate;
+  }
+
+  /* Floating search box over the map. z-index sits above Leaflet's own panes
+     and controls (which top out at 1000). Centered so it clears the zoom
+     control in the top-left corner. */
+  .map-search {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(360px, calc(100% - 24px));
+    border-radius: var(--form-radius);
+    box-shadow: var(--card-shadow);
+  }
+
+  .add-result-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--form-radius);
+    background-color: var(--orange);
+    color: #fff;
+    cursor: pointer;
+  }
+
+  /* Logged-restaurant popup: the shared RestaurantSummary plus an address line
+     and the View details link. min-width keeps a photo-less popup from
+     collapsing too narrow. */
+  .popup-card {
+    min-width: 200px;
+
+    .popup-address {
+      font-family: var(--primary-font-light);
+      font-size: 12px;
+      color: var(--text-third-color);
+    }
+
+    .popup-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--orange);
+    }
+  }
+
+  /* Strip the white box Leaflet puts behind div-based markers so only the pin
+     SVG shows. */
+  .leaflet-div-icon {
+    background: transparent;
+    border: none;
+  }
+
+  @media (max-width: 1024px) {
+    padding-left: var(--container-padding);
+    padding-top: var(--container-padding);
+  }
+`;

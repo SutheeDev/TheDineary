@@ -1,23 +1,36 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalContext } from "../App";
-import { FormRow, Loading } from "../components";
+import { FormRow, Loading, PlaceSearch } from "../components";
 import styled from "styled-components";
 import apiClient from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 
 const UpdateUser = () => {
-  const { user, setUser, isLoading, setIsLoading } = useGlobalContext();
+  const { user, setUser, showToast } = useGlobalContext();
 
   const navigate = useNavigate();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const initialUser = {
     name: user.name,
     lastname: user.lastname,
     email: user.email,
+    homeLocation: user.homeLocation || null,
   };
 
   const [userState, setUserState] = useState(initialUser);
+  const searchEnabled = Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+  const hasHomeLocation = Object.values(userState.homeLocation || {}).some(Boolean);
+
+  // Hand-editing a single field. lat/lng are left as-is on purpose: they only
+  // change when a fresh address is picked from the search box.
+  const handleHomeFieldChange = (key, value) =>
+    setUserState({
+      ...userState,
+      homeLocation: { ...(userState.homeLocation || {}), [key]: value },
+    });
   const [setupUrl, setSetupUrl] = useState("");
   const [setupCode, setSetupCode] = useState("");
   const [twoFAError, setTwoFAError] = useState("");
@@ -60,16 +73,20 @@ const UpdateUser = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const response = await apiClient.patch("/user", userState);
       setUser(response.data);
+      showToast("Profile updated", "success");
       navigate("/");
     } catch (error) {
-      console.log(error);
+      showToast(
+        error.response?.data?.msg || "Couldn't save changes",
+        "error"
+      );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -77,7 +94,7 @@ const UpdateUser = () => {
     <CardsContainer>
       <div className="page-wrapper">
         <h1 className="heading">Profile Update</h1>
-        {isLoading ? (
+        {isSubmitting ? (
           <Loading />
         ) : (
           <>
@@ -113,6 +130,94 @@ const UpdateUser = () => {
                 }
                 placeholder="Email"
               />
+
+              {searchEnabled && (
+                <div className="home-address">
+                  <div className="home-header">
+                    <h2 className="home-heading">Home Address</h2>
+                    {hasHomeLocation && (
+                      <button
+                        type="button"
+                        className="home-clear"
+                        onClick={() =>
+                          setUserState({ ...userState, homeLocation: null })
+                        }
+                      >
+                        Clear address
+                      </button>
+                    )}
+                  </div>
+                  <PlaceSearch
+                    className="home-search"
+                    clearOnSelect
+                    hideClearButton
+                    onSelect={(place) =>
+                      setUserState({
+                        ...userState,
+                        homeLocation: {
+                          line1: place.location.line1,
+                          city: place.location.city,
+                          state: place.location.state,
+                          postalCode: place.location.postalCode,
+                          country: place.location.country,
+                          address: place.location.address,
+                          lat: place.location.lat,
+                          lng: place.location.lng,
+                        },
+                      })
+                    }
+                  />
+
+                  <FormRow
+                    type="text"
+                    name="line1"
+                    value={userState.homeLocation?.line1 || ""}
+                    handleChange={(e) => handleHomeFieldChange("line1", e.target.value)}
+                    labelText="street address"
+                    placeholder="Street address"
+                  />
+                  <div className="field-row">
+                    <FormRow
+                      type="text"
+                      name="city"
+                      value={userState.homeLocation?.city || ""}
+                      handleChange={(e) => handleHomeFieldChange("city", e.target.value)}
+                      labelText="city"
+                      placeholder="City"
+                    />
+                    <FormRow
+                      type="text"
+                      name="state"
+                      value={userState.homeLocation?.state || ""}
+                      handleChange={(e) => handleHomeFieldChange("state", e.target.value)}
+                      labelText="state / province / region"
+                      placeholder="State / Province / Region"
+                    />
+                  </div>
+                  <div className="field-row">
+                    <FormRow
+                      type="text"
+                      name="postalCode"
+                      value={userState.homeLocation?.postalCode || ""}
+                      handleChange={(e) =>
+                        handleHomeFieldChange("postalCode", e.target.value)
+                      }
+                      labelText="postal code / zip"
+                      placeholder="Postal code / ZIP"
+                    />
+                    <FormRow
+                      type="text"
+                      name="country"
+                      value={userState.homeLocation?.country || ""}
+                      handleChange={(e) =>
+                        handleHomeFieldChange("country", e.target.value)
+                      }
+                      labelText="country"
+                      placeholder="Country"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="btn-container">
                 <button className="btn orange-btn" type="submit">
@@ -203,6 +308,47 @@ const CardsContainer = styled.div`
     text-align: right;
   }
 
+  .home-address {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--bg-secondary-color);
+  }
+
+  .home-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .home-heading {
+    font-size: 20px;
+  }
+
+  .home-clear {
+    border: none;
+    background-color: var(--bg-secondary-color);
+    color: var(--text-third-color);
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: var(--btn-radius);
+    font-size: 14px;
+  }
+
+  .home-search {
+    margin-bottom: 24px;
+  }
+
+  .field-row {
+    display: flex;
+    gap: 16px;
+  }
+
+  .field-row > * {
+    flex: 1;
+  }
+
   .cancel-btn {
     margin-left: 20px;
   }
@@ -250,5 +396,12 @@ const CardsContainer = styled.div`
   @media (max-width: 1024px) {
     padding-left: var(--container-padding);
     padding-top: var(--container-padding);
+  }
+
+  @media (max-width: 639px) {
+    .field-row {
+      flex-direction: column;
+      gap: 0;
+    }
   }
 `;

@@ -10,12 +10,11 @@ import { useGlobalContext } from "../App";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Login = () => {
-  const { setUser, setRestaurants } = useGlobalContext();
+  const { setUser, setRestaurants, showToast } = useGlobalContext();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState("credentials");
   const [code, setCode] = useState("");
@@ -29,10 +28,10 @@ const Login = () => {
 
   const validate = () => {
     const errors = {};
-    if (!form.email) errors.email = "Email is required";
+    if (!form.email) errors.email = "(Required)";
     else if (!emailPattern.test(form.email))
       errors.email = "Enter a valid email";
-    if (!form.password) errors.password = "Password is required";
+    if (!form.password) errors.password = "(Required)";
     return errors;
   };
 
@@ -44,7 +43,6 @@ const Login = () => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    setError("");
     setIsLoading(true);
     try {
       const { data } = await apiClient.post("/auth/google", {
@@ -52,7 +50,7 @@ const Login = () => {
       });
       await loadSessionAndGo(data);
     } catch (err) {
-      setError(err.response?.data?.msg || "Google sign-in failed");
+      showToast(err.response?.data?.msg || "Google sign-in failed", "error");
     } finally {
       setIsLoading(false);
     }
@@ -60,11 +58,11 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     const errors = validate();
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
+      showToast("Please complete the required fields", "error");
       return;
     }
 
@@ -78,7 +76,7 @@ const Login = () => {
       }
       await loadSessionAndGo(data);
     } catch (err) {
-      setError(err.response?.data?.msg || "Something went wrong");
+      showToast(err.response?.data?.msg || "Something went wrong", "error");
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +84,6 @@ const Login = () => {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
 
     try {
@@ -95,7 +92,7 @@ const Login = () => {
       });
       await loadSessionAndGo(userData);
     } catch (err) {
-      setError(err.response?.data?.msg || "Something went wrong");
+      showToast(err.response?.data?.msg || "Something went wrong", "error");
     } finally {
       setIsLoading(false);
     }
@@ -126,13 +123,20 @@ const Login = () => {
                   value={form.email}
                   handleChange={handleChange}
                   placeholder="Email"
+                  required
+                  error={fieldErrors.email}
                 />
-                {fieldErrors.email && (
-                  <p className="field-error">{fieldErrors.email}</p>
-                )}
 
                 <div className="password-field">
-                  <label htmlFor="password">Password</label>
+                  <div className="field-label-row">
+                    <label htmlFor="password">
+                      Password
+                      <span className="required-star"> *</span>
+                    </label>
+                    {fieldErrors.password && (
+                      <span className="field-error">{fieldErrors.password}</span>
+                    )}
+                  </div>
                   <div className="password-input">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -151,17 +155,12 @@ const Login = () => {
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  {fieldErrors.password && (
-                    <p className="field-error">{fieldErrors.password}</p>
-                  )}
                 </div>
 
-                {/* Forgot password flow is not implemented yet (UI only). */}
                 <p className="forgot-link">
-                  <Link to="/login">Forgot password?</Link>
+                  <Link to="/forgot-password">Forgot password?</Link>
                 </p>
 
-                {error && <p className="error-msg">{error}</p>}
                 <button
                   className="btn orange-btn submit-btn"
                   type="submit"
@@ -178,7 +177,7 @@ const Login = () => {
               <div className="google-btn">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
-                  onError={() => setError("Google sign-in failed")}
+                  onError={() => showToast("Google sign-in failed", "error")}
                 />
               </div>
 
@@ -197,7 +196,6 @@ const Login = () => {
                   handleChange={(e) => setCode(e.target.value)}
                   placeholder="6-digit code"
                 />
-                {error && <p className="error-msg">{error}</p>}
                 <button
                   className="btn orange-btn submit-btn"
                   type="submit"
@@ -286,6 +284,16 @@ const Wrapper = styled.div`
     margin-bottom: 16px;
   }
 
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .required-star {
+    color: var(--orange);
+  }
+
   .password-input {
     position: relative;
   }
@@ -316,8 +324,6 @@ const Wrapper = styled.div`
   .field-error {
     color: var(--orange);
     font-size: 13px;
-    margin-top: 6px;
-    margin-bottom: 4px;
   }
 
   .forgot-link {
@@ -336,12 +342,6 @@ const Wrapper = styled.div`
     width: 100%;
     margin-top: 8px;
     padding: 12px;
-  }
-
-  .error-msg {
-    color: var(--orange);
-    margin-bottom: 12px;
-    font-size: 14px;
   }
 
   .divider {

@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ProfileDropdown } from "../components/index";
 import { IoChevronDown } from "react-icons/io5";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import styled from "styled-components";
+import { useClickOutside } from "../utils/useClickOutside";
 
 const UserIcon = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  useClickOutside(
+    wrapperRef,
+    () => setIsProfileDropdownOpen(false),
+    isProfileDropdownOpen
+  );
+
   return (
-    <Wrapper onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+    <Wrapper
+      ref={wrapperRef}
+      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+    >
       <div className="down-arrow-container">
         <IoChevronDown />
       </div>

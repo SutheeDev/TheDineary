@@ -7,6 +7,12 @@ import UpdateUser from "./UpdateUser";
 import DashboardLayout from "./DashboardLayout";
 import Login from "./Login";
 import Register from "./Register";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
+import RestaurantsMap from "./RestaurantsMap";
+import Ranking from "./Ranking";
+import Calendar from "./Calendar";
+import Dashboard from "./Dashboard";
 
 export {
   Home,
@@ -18,4 +24,10 @@ export {
   DashboardLayout,
   Login,
   Register,
+  ForgotPassword,
+  ResetPassword,
+  RestaurantsMap,
+  Ranking,
+  Calendar,
+  Dashboard,
 };

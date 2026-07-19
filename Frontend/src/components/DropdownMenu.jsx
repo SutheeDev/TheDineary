@@ -29,12 +29,9 @@ const Wrapper = styled.div`
   position: absolute;
   top: 30px;
   right: 0;
-  background-color: var(--text-secondary-color);
   background-color: var(--white);
-  color: var(--bg-color);
   color: var(--black);
   width: 90px;
-  border-radius: var(--form-radius);
   border-radius: 4px;
   padding: 8px;
   box-shadow: var(--dropdown-shadow);

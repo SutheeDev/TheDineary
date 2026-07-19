@@ -1,37 +1,31 @@
 import User from "../models/User.mjs";
-import {
-  BadRequestError,
-  NotFoundError,
-  ServerError,
-} from "../errors/customErrors.mjs";
+import { NotFoundError } from "../errors/customErrors.mjs";
 
-const getUser = async (req, res) => {
+const getUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
+    const user = await User.findById(req.userId);
 
     if (!user) {
       throw new NotFoundError(`No user found`);
     }
 
     res.status(200).json(user);
-  } catch (error) {
-    throw new ServerError("Something went wrong, please try again later");
+  } catch (err) {
+    next(err);
   }
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
-
-    if (!name || !email) {
-      throw new BadRequestError("Please fill in all required fields");
-    }
+    // Only these fields may be written. Anything else in req.body (password,
+    // totpEnabled, googleId) is ignored.
+    const { name, lastname, email, homeLocation } = req.body;
 
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.userId },
-      req.body,
-      { new: true }
-    ).select("-password");
+      { name, lastname, email, homeLocation },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedUser) {
       throw new NotFoundError(`No user found`);
@@ -39,7 +33,7 @@ const updateUser = async (req, res) => {
 
     res.status(200).json(updatedUser);
   } catch (err) {
-    throw new ServerError("Something went wrong, please try again later");
+    next(err);
   }
 };
 

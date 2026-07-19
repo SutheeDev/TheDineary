@@ -11,12 +11,19 @@ import FormRow from "./FormRow";
 import DisplayRangeEl from "./DisplayRangeEl";
 import DropdownMenu from "./DropdownMenu";
 import ProfileDropdown from "./ProfileDropdown";
+import PlaceSearch from "./PlaceSearch";
+import SelectDropdown from "./SelectDropdown";
+import Toast from "./Toast";
+import ImageCarousel from "./ImageCarousel";
+import RestaurantSummary from "./RestaurantSummary";
+import RestaurantForm from "./RestaurantForm";
 
 export {
   Card,
   Loading,
   Logo,
   Alert,
+  Toast,
   NavigationIcon,
   UserIcon,
   Navbar,
@@ -26,4 +33,9 @@ export {
   DisplayRangeEl,
   DropdownMenu,
   ProfileDropdown,
+  PlaceSearch,
+  SelectDropdown,
+  ImageCarousel,
+  RestaurantSummary,
+  RestaurantForm,
 };
