@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm start --prefix Backend\" \"npm run dev --prefix Frontend\"",
     "test": "npm test --prefix Backend",
-    "build": "npm ci --prefix Backend && npm ci --prefix Frontend && npm run build --prefix Frontend",
+    "build": "npm ci --prefix Backend && npm ci --include=dev --prefix Frontend && npm run build --prefix Frontend",
     "start": "node Backend/server.mjs"
   },
   "devDependencies": {
