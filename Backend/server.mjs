@@ -35,6 +35,10 @@ if (process.env.NODE_ENV !== "test") {
 
 app.use(
   helmet({
+    // Helmet defaults this to "same-origin", which nulls window.opener in any
+    // popup we open. The Google Sign-In popup uses that reference to hand the
+    // credential back, so it would hang blank after choosing an account.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
