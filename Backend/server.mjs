@@ -4,24 +4,73 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import connectDB from "./config/db.mjs";
 import errorHandlerMiddleware from "./middleware/errorHandlerMiddleware.mjs";
 
 dotenv.config();
 const app = express();
 
+// Render puts a proxy in front of the service. Trust exactly one hop so
+// express-rate-limit reads the real client IP from X-Forwarded-For instead of
+// throttling every user as one shared address.
+app.set("trust proxy", 1);
+
 const port = process.env.PORT || 5000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.join(__dirname, "../Frontend/dist");
 
 // Routes
 import authRouter from "./routes/authRoutes.mjs";
 import userRouter from "./routes/userRoutes.mjs";
 import restaurantRouter from "./routes/restaurantRoutes.mjs";
 
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
+// Request logging everywhere except tests: combined (standard web log) in
+// production, the shorter dev format locally.
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 }
 
-app.use(helmet());
+app.use(
+  helmet({
+    // Helmet defaults this to "same-origin", which nulls window.opener in any
+    // popup we open. The Google Sign-In popup uses that reference to hand the
+    // credential back, so it would hang blank after choosing an account.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://maps.googleapis.com",
+          "https://maps.gstatic.com",
+          "https://accounts.google.com",
+        ],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://res.cloudinary.com",
+          "https://*.basemaps.cartocdn.com",
+          "https://maps.googleapis.com",
+          "https://maps.gstatic.com",
+          "https://lh3.googleusercontent.com",
+          "https://*.googleusercontent.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://maps.googleapis.com",
+          "https://places.googleapis.com",
+          "https://accounts.google.com",
+        ],
+        frameSrc: ["'self'", "https://accounts.google.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        fontSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  })
+);
 app.use(express.json());
 app.use(
   cors({
@@ -35,7 +84,22 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/restaurants", restaurantRouter);
 
-// Not Found Middleware
+// In production the built frontend is served from this same origin. Guarded by
+// existsSync because the test suite imports `app` without building the frontend,
+// and an unguarded static mount would 404 the SPA fallback into every test.
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  // Any non-API GET returns the SPA shell so React Router deep links such as
+  // /map or /ranking survive a hard refresh. /api misses fall through to the
+  // JSON 404 below.
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
+// Not Found Middleware (API misses, non-GET misses, and everything when the
+// frontend build is absent)
 app.use("*", (req, res) => {
   res.status(404).json({ msg: "Not Found" });
 });
