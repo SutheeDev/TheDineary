@@ -374,7 +374,19 @@ const Wrapper = styled.div`
 
   @media (max-width: 480px) {
     .tiles {
-      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .tile {
+      padding: 16px;
+
+      .tile-value {
+        font-size: 24px;
+      }
+
+      .tile-label {
+        font-size: 13px;
+      }
     }
   }
 `;
