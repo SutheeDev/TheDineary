@@ -53,8 +53,14 @@ A personal restaurant diary app where users can log, manage, and organize their 
 ![Profile Update Page](https://res.cloudinary.com/dnc7potxo/image/upload/v1738698477/ReadMe-Images/Dineary/Profile_Update.png)
 
 - Accessible from the navbar user icon.
-- Update name, last name, and email.
+- Update name, last name, and email. Changing the email un-confirms the address and sends a fresh confirmation link.
 - Enable or disable two-factor authentication (TOTP): scan a QR code with an authenticator app and confirm a 6-digit code to turn it on.
+
+### Email Confirmation
+
+- New password accounts are emailed a single-use confirmation link that expires after 24 hours.
+- Until it is clicked the app works normally, with a banner across the top carrying a "Resend email" button.
+- Accounts created with "Sign in with Google" are already confirmed and never see the banner.
 
 ### Error 404 Page
 
@@ -146,6 +152,11 @@ All protected routes identify the user from the httpOnly session cookie, so the 
 
 - `POST /api/auth/register` -- create an account, sets the session cookie
 - `POST /api/auth/login` -- log in; if 2FA is enabled, returns `{ mfaRequired: true }` and sets a short-lived `mfa_pending` cookie instead of the session cookie
+- `POST /api/auth/google` -- sign in with a Google ID token; creates or links an account
+- `POST /api/auth/forgot-password` -- email a single-use password reset link (1-hour expiry)
+- `POST /api/auth/reset-password` -- exchange the emailed token for a new password
+- `POST /api/auth/verify-email` -- exchange the emailed token to confirm the address (24-hour expiry)
+- `POST /api/auth/resend-verification` -- (protected) send a fresh confirmation link
 - `POST /api/auth/totp/verify` -- complete login by verifying the 6-digit code (uses the `mfa_pending` cookie)
 - `POST /api/auth/totp/setup` -- (protected) start 2FA setup, returns an `otpauth://` URL for the QR code
 - `POST /api/auth/totp/verify-setup` -- (protected) verify the first code and enable 2FA
@@ -180,6 +191,7 @@ All restaurant routes are protected.
 | `password` | String | required, min 6 chars        |
 | `totpSecret`  | String  | optional, set during 2FA setup (never returned to the client) |
 | `totpEnabled` | Boolean | defaults to `false`          |
+| `isVerified`  | Boolean | defaults to `false`; `true` for Google accounts on creation |
 
 ### Restaurant
 
