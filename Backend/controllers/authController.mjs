@@ -4,7 +4,10 @@ import jwt from "jsonwebtoken";
 import { authenticator } from "otplib";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.mjs";
-import { sendPasswordResetEmail } from "../utils/sendEmail.mjs";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "../utils/sendEmail.mjs";
 import { BadRequestError, UnauthorizedError } from "../errors/customErrors.mjs";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -42,6 +45,26 @@ const sanitizeUser = (user) => {
   return safe;
 };
 
+// Shared by the password reset and email verification flows: only the hash of
+// an emailed token is ever stored, so a leaked database cannot be replayed.
+const hashToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+// Issue a fresh single-use verification link. Used by register, resend, and the
+// email-change path in userController.
+const issueVerificationEmail = async (user) => {
+  const verifyToken = crypto.randomBytes(32).toString("hex");
+  user.verifyEmailToken = hashToken(verifyToken);
+  user.verifyEmailExpires = Date.now() + 24 * 60 * 60 * 1000;
+  await user.save();
+
+  await sendVerificationEmail({
+    to: user.email,
+    name: user.name,
+    verifyUrl: `${process.env.CLIENT_URL}/verify-email/${verifyToken}`,
+  });
+};
+
 const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
@@ -53,6 +76,15 @@ const register = async (req, res, next) => {
 
     // Hashing happens in the User model's pre("save") hook.
     const user = await User.create({ name, email, password });
+
+    // Deliberately the opposite of forgotPassword, which rolls the token back
+    // and throws: an account with no verification email is still perfectly
+    // usable, so a failed send must not fail registration.
+    try {
+      await issueVerificationEmail(user);
+    } catch (err) {
+      console.error("Failed to send verification email:", err.message);
+    }
 
     const token = signToken(user._id);
     res.cookie("token", token, cookieOptions);
@@ -126,7 +158,9 @@ const googleLogin = async (req, res, next) => {
         user.googleId = googleId;
         await user.save();
       } else {
-        user = await User.create({ name, email, googleId });
+        // Google has already proven the address, so these accounts start
+        // verified and are never sent a verification link.
+        user = await User.create({ name, email, googleId, isVerified: true });
       }
     }
 
@@ -248,9 +282,6 @@ const disableTotp = async (req, res, next) => {
   }
 };
 
-const hashResetToken = (token) =>
-  crypto.createHash("sha256").update(token).digest("hex");
-
 // Step 1 of password reset: email a single-use link. The response is identical
 // whether or not the account exists, so the endpoint cannot be used to find out
 // who has a Dineary account.
@@ -270,7 +301,7 @@ const forgotPassword = async (req, res, next) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordToken = hashToken(resetToken);
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
@@ -302,7 +333,7 @@ const resetPassword = async (req, res, next) => {
     const { token, password } = req.body;
 
     const user = await User.findOne({
-      resetPasswordToken: hashResetToken(token),
+      resetPasswordToken: hashToken(token),
       resetPasswordExpires: { $gt: Date.now() },
     });
 
@@ -324,6 +355,54 @@ const resetPassword = async (req, res, next) => {
     res.status(200).json({
       msg: "Password updated. You can now sign in with your new password.",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Exchange the emailed token for a verified account. A used, expired, or
+// forged token all get the same 400, so a second click on a real link is
+// indistinguishable from a guess.
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    const user = await User.findOne({
+      verifyEmailToken: hashToken(token),
+      verifyEmailExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new BadRequestError("This link is invalid or has expired");
+    }
+
+    // Clearing the token is what makes the link single-use.
+    user.isVerified = true;
+    user.verifyEmailToken = undefined;
+    user.verifyEmailExpires = undefined;
+    await user.save();
+
+    res.status(200).json(sanitizeUser(user));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Unlike register, a send failure here surfaces as an error: the user asked for
+// this email, so silently doing nothing would be the wrong answer.
+const resendVerification = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      throw new UnauthorizedError("Authentication required");
+    }
+    if (user.isVerified) {
+      throw new BadRequestError("This email is already confirmed");
+    }
+
+    await issueVerificationEmail(user);
+
+    res.status(200).json({ msg: "Confirmation email sent. Check your inbox." });
   } catch (err) {
     next(err);
   }
@@ -353,6 +432,9 @@ export {
   disableTotp,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerification,
+  issueVerificationEmail,
   logout,
   getMe,
 };

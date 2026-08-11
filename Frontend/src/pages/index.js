@@ -9,6 +9,7 @@ import Login from "./Login";
 import Register from "./Register";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
+import VerifyEmail from "./VerifyEmail";
 import RestaurantsMap from "./RestaurantsMap";
 import Ranking from "./Ranking";
 import Calendar from "./Calendar";
@@ -26,6 +27,7 @@ export {
   Register,
   ForgotPassword,
   ResetPassword,
+  VerifyEmail,
   RestaurantsMap,
   Ranking,
   Calendar,

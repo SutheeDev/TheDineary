@@ -150,12 +150,17 @@ const resetPasswordValidation = [
     .withMessage("Password must be at least 6 characters"),
 ];
 
+const verifyEmailValidation = [
+  body("token").notEmpty().withMessage("Verification token is missing"),
+];
+
 export {
   validate,
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  verifyEmailValidation,
   userValidation,
   restaurantValidation,
 };

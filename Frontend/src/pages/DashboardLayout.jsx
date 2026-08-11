@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Navbar, Sidebar } from "../components";
+import { Navbar, Sidebar, VerifyBanner } from "../components";
 import styled from "styled-components";
 
 const DashboardLayout = () => {
@@ -34,6 +34,7 @@ const DashboardLayout = () => {
   return (
     <main>
       <Navbar onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+      <VerifyBanner />
       <Content>
         <Sidebar
           isOpen={isSidebarOpen}

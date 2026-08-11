@@ -13,6 +13,7 @@ import {
   Register,
   ForgotPassword,
   ResetPassword,
+  VerifyEmail,
   RestaurantsMap,
   Ranking,
   Calendar,
@@ -94,6 +95,8 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          {/* Outside ProtectedRoute: the emailed link has to work signed out. */}
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<Home />} />
             <Route path="/create" element={<CreateRestaurant />} />

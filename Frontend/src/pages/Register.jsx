@@ -69,6 +69,7 @@ const Register = () => {
       const { data: userData } = await apiClient.post("/auth/register", form);
       setUser(userData);
       setRestaurants([]);
+      showToast("Check your email to confirm your address.", "info");
       navigate("/");
     } catch (err) {
       showToast(err.response?.data?.msg || "Something went wrong", "error");

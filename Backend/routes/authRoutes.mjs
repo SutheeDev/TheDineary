@@ -10,6 +10,8 @@ import {
   disableTotp,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerification,
   logout,
   getMe,
 } from "../controllers/authController.mjs";
@@ -20,6 +22,7 @@ import {
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  verifyEmailValidation,
 } from "../middleware/validationMiddleware.mjs";
 
 const router = express.Router();
@@ -53,6 +56,19 @@ router.post(
   resetPasswordValidation,
   validate,
   resetPassword
+);
+router.post(
+  "/verify-email",
+  authLimiter,
+  verifyEmailValidation,
+  validate,
+  verifyEmail
+);
+router.post(
+  "/resend-verification",
+  authLimiter,
+  authMiddleware,
+  resendVerification
 );
 router.post("/totp/verify", authLimiter, verifyTotp);
 router.post("/totp/setup", authMiddleware, setupTotp);

@@ -17,6 +17,7 @@ import Toast from "./Toast";
 import ImageCarousel from "./ImageCarousel";
 import RestaurantSummary from "./RestaurantSummary";
 import RestaurantForm from "./RestaurantForm";
+import VerifyBanner from "./VerifyBanner";
 
 export {
   Card,
@@ -38,4 +39,5 @@ export {
   ImageCarousel,
   RestaurantSummary,
   RestaurantForm,
+  VerifyBanner,
 };
