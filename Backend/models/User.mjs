@@ -54,6 +54,22 @@ const userSchema = new mongoose.Schema({
     type: Date,
     select: false,
   },
+  // Email verification. Same shape and reasoning as the reset fields above:
+  // only the SHA-256 hash of the token is stored, and both token fields are
+  // select: false. Google accounts are created verified, since Google has
+  // already proven the address.
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verifyEmailToken: {
+    type: String,
+    select: false,
+  },
+  verifyEmailExpires: {
+    type: Date,
+    select: false,
+  },
   // Saved home address used as the map's starting point when the browser cannot
   // provide a live location. Same shape as a restaurant's location.
   homeLocation: {

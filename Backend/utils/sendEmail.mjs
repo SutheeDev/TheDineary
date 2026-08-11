@@ -56,4 +56,23 @@ const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
   await sendEmail({ to, subject: "Reset your Dineary password", html });
 };
 
-export { sendEmail, sendPasswordResetEmail };
+// Signup verification email. Expiry is longer than the reset link's because a
+// signup email is often read long after it arrives.
+const sendVerificationEmail = async ({ to, name, verifyUrl }) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #222;">
+      <h2 style="color: #e77b31;">Confirm your Dineary email</h2>
+      <p>Hi ${name},</p>
+      <p>Thanks for signing up. Click the button below to confirm this email address. This link expires in 24 hours.</p>
+      <p style="margin: 28px 0;">
+        <a href="${verifyUrl}" style="background-color: #e77b31; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Confirm email</a>
+      </p>
+      <p style="font-size: 13px; color: #666;">If the button does not work, paste this into your browser:<br />${verifyUrl}</p>
+      <p style="font-size: 13px; color: #666;">If you did not create a Dineary account, you can ignore this email.</p>
+    </div>
+  `;
+
+  await sendEmail({ to, subject: "Confirm your Dineary email", html });
+};
+
+export { sendEmail, sendPasswordResetEmail, sendVerificationEmail };

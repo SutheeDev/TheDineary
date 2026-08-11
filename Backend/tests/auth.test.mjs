@@ -4,13 +4,36 @@ import { authenticator } from "otplib";
 import { app } from "../server.mjs";
 import User from "../models/User.mjs";
 import { registerUser } from "./helpers.mjs";
-import { sendPasswordResetEmail } from "../utils/sendEmail.mjs";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "../utils/sendEmail.mjs";
 
-// The raw reset token only ever exists inside the emailed link, so the tests
-// read it back out of the mocked send call.
+// The raw reset and verification tokens only ever exist inside the emailed
+// link, so the tests read them back out of the mocked send calls.
 vi.mock("../utils/sendEmail.mjs", () => ({
   sendEmail: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
+  sendVerificationEmail: vi.fn(),
+}));
+
+// Stands in for Google's ID token check so the sign-in path can be exercised
+// without a real credential. vi.hoisted is needed because vi.mock factories run
+// before the rest of this file.
+const { GOOGLE_PAYLOAD } = vi.hoisted(() => ({
+  GOOGLE_PAYLOAD: {
+    sub: "google-sub-verified",
+    email: "googlenew@example.com",
+    name: "Google New",
+  },
+}));
+
+vi.mock("google-auth-library", () => ({
+  OAuth2Client: class {
+    async verifyIdToken() {
+      return { getPayload: () => GOOGLE_PAYLOAD };
+    }
+  },
 }));
 
 const requestReset = async (email) => {
@@ -20,6 +43,11 @@ const requestReset = async (email) => {
   const call = sendPasswordResetEmail.mock.calls.at(-1);
   const token = call ? call[0].resetUrl.split("/").pop() : null;
   return { res, token };
+};
+
+const lastVerifyToken = () => {
+  const call = sendVerificationEmail.mock.calls.at(-1);
+  return call ? call[0].verifyUrl.split("/").pop() : null;
 };
 
 describe("POST /api/auth/register", () => {
@@ -404,5 +432,190 @@ describe("password reset", () => {
       .post("/api/auth/reset-password")
       .send({ token: "not-a-real-token", password: "newpassword" });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("email verification", () => {
+  beforeEach(() => {
+    sendVerificationEmail.mockClear();
+    sendVerificationEmail.mockResolvedValue(undefined);
+  });
+
+  it("emails a link on register and stores only the hashed token", async () => {
+    await registerUser({ email: "verify@example.com" });
+
+    expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+    const token = lastVerifyToken();
+    expect(token).toBeTruthy();
+
+    const user = await User.findOne({ email: "verify@example.com" }).select(
+      "+verifyEmailToken +verifyEmailExpires"
+    );
+    expect(user.verifyEmailToken).not.toBe(token);
+    expect(user.verifyEmailExpires.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("returns a new account as unverified", async () => {
+    const { user } = await registerUser({ email: "unverified@example.com" });
+    expect(user.isVerified).toBe(false);
+  });
+
+  it("still registers the account when the email fails to send", async () => {
+    sendVerificationEmail.mockRejectedValueOnce(new Error("provider down"));
+
+    const res = await request(app).post("/api/auth/register").send({
+      name: "Dana",
+      email: "sendfail@example.com",
+      password: "password123",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.headers["set-cookie"].join(";")).toContain("token=");
+  });
+
+  it("verifies the account and clears both token fields", async () => {
+    await registerUser({ email: "clicks@example.com" });
+    const token = lastVerifyToken();
+
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(res.status).toBe(200);
+    expect(res.body.isVerified).toBe(true);
+
+    const user = await User.findOne({ email: "clicks@example.com" }).select(
+      "+verifyEmailToken +verifyEmailExpires"
+    );
+    expect(user.isVerified).toBe(true);
+    expect(user.verifyEmailToken).toBeUndefined();
+    expect(user.verifyEmailExpires).toBeUndefined();
+  });
+
+  it("rejects a token that has already been used", async () => {
+    await registerUser({ email: "single@example.com" });
+    const token = lastVerifyToken();
+
+    const first = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(first.status).toBe(200);
+
+    const second = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(second.status).toBe(400);
+    expect(second.body.msg).toMatch(/invalid or has expired/i);
+  });
+
+  it("rejects an expired token", async () => {
+    await registerUser({ email: "stale@example.com" });
+    const token = lastVerifyToken();
+
+    await User.updateOne(
+      { email: "stale@example.com" },
+      { verifyEmailExpires: Date.now() - 1000 }
+    );
+
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a made-up token", async () => {
+    await registerUser({ email: "forged@example.com" });
+
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: "not-a-real-token" });
+    expect(res.status).toBe(400);
+  });
+
+  it("creates a Google account already verified and sends it no link", async () => {
+    const res = await request(app)
+      .post("/api/auth/google")
+      .send({ credential: "fake-google-credential" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isVerified).toBe(true);
+    expect(sendVerificationEmail).not.toHaveBeenCalled();
+
+    const user = await User.findOne({ email: GOOGLE_PAYLOAD.email }).select(
+      "+verifyEmailToken"
+    );
+    expect(user.verifyEmailToken).toBeUndefined();
+  });
+
+  it("requires authentication to resend", async () => {
+    const res = await request(app).post("/api/auth/resend-verification");
+    expect(res.status).toBe(401);
+  });
+
+  it("sends a second, different link on resend", async () => {
+    const { cookie } = await registerUser({ email: "resend@example.com" });
+    const first = lastVerifyToken();
+
+    const res = await request(app)
+      .post("/api/auth/resend-verification")
+      .set("Cookie", cookie);
+    expect(res.status).toBe(200);
+
+    const second = lastVerifyToken();
+    expect(second).not.toBe(first);
+
+    const verifyRes = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: second });
+    expect(verifyRes.status).toBe(200);
+  });
+
+  it("refuses to resend for an already verified account", async () => {
+    const { cookie } = await registerUser({ email: "done@example.com" });
+    await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: lastVerifyToken() });
+
+    const res = await request(app)
+      .post("/api/auth/resend-verification")
+      .set("Cookie", cookie);
+    expect(res.status).toBe(400);
+    expect(res.body.msg).toMatch(/already confirmed/i);
+  });
+
+  // Without this, verification is bypassed by verifying an address you own and
+  // then switching the account to someone else's.
+  it("unverifies the account when the email is changed", async () => {
+    const { cookie } = await registerUser({ email: "before@example.com" });
+    await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: lastVerifyToken() });
+
+    const res = await request(app)
+      .patch("/api/user")
+      .set("Cookie", cookie)
+      .send({ name: "Same Person", email: "after@example.com" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isVerified).toBe(false);
+    expect(sendVerificationEmail.mock.calls.at(-1)[0].to).toBe(
+      "after@example.com"
+    );
+  });
+
+  it("leaves verification alone when the email is unchanged", async () => {
+    const { cookie } = await registerUser({ email: "steady@example.com" });
+    await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: lastVerifyToken() });
+    sendVerificationEmail.mockClear();
+
+    const res = await request(app)
+      .patch("/api/user")
+      .set("Cookie", cookie)
+      .send({ name: "Renamed", email: "steady@example.com" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isVerified).toBe(true);
+    expect(sendVerificationEmail).not.toHaveBeenCalled();
   });
 });
